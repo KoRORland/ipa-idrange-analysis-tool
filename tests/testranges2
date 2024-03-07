@@ -1,0 +1,39 @@
+----------------
+3 ranges matched
+----------------
+  dn: cn=EXAMPLE.LOCAL_id_range,cn=ranges,cn=etc,dc=example,dc=local
+  cn: EXAMPLE.LOCAL_id_range
+  ipabaseid: 1862000000
+  ipaidrangesize: 200000
+  ipabaserid: 1000
+  ipasecondarybaserid: 100000000
+  iparangetype: ipa-local
+  objectclass: top
+  objectclass: ipaIDrange
+  objectclass: ipaDomainIDRange
+
+  dn: cn=EXAMPLE.LOCAL_subid_range,cn=ranges,cn=etc,dc=example,dc=local
+  cn: EXAMPLE.LOCAL_subid_range
+  ipabaseid: 2147483648
+  ipaidrangesize: 2147352576
+  ipabaserid: 2147283648
+  ipanttrusteddomainsid: S-1-5-21-738065-838566-4207669186
+  iparangetype: ipa-ad-trust
+  objectclass: top
+  objectclass: ipaIDrange
+  objectclass: ipaTrustedADDomainRange
+
+  dn: cn=WIN23.LOCAL_id_range,cn=ranges,cn=etc,dc=example,dc=local
+  cn: WIN23.LOCAL_id_range
+  ipabaseid: 1001600000
+  ipaidrangesize: 200000
+  ipabaserid: 0
+  ipanttrusteddomainsid: S-1-5-21-3014607317-3340640230-4186965532
+  iparangetype: ipa-ad-trust
+  ipaautoprivategroups: true
+  objectclass: ipaIDrange
+  objectclass: ipatrustedaddomainrange
+----------------------------
+Number of entries returned 3
+----------------------------
+
