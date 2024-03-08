@@ -12,7 +12,7 @@ and returns currently configured IPA ID ranges in digestible way, alongside some
 
 ## Getting started
 
-This is a simple Python3 script, with no external libraries apart from `sys` so it should run on basically on any system where `python3` is installed.
+This is a simple Python3 script, with no external libraries apart from `sys` so it should run on basically any system where `python3` is installed.
 
 ```
 git clone https://gitlab.cee.redhat.com/gss-emea/ipa-idrange-analysis-tool.git
@@ -25,13 +25,13 @@ cd ipa-idrange-analysis-tool
 python3 idrange-analyse.py < inputfile
 ```
 
-## What is being done?
+## What does the tool do?
 
 All the code runs in memory, there are no changes to the input stream. 
 - We create an easy-looking table with data from the imput;
-- We check the ranges inputed are not overlapping;
-- We propose `ldapsearch`es that will reveal POSIX users and groups that are  outside of the ranges;
-- We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands.
+- We check the ranges inputed are not overlapping or stretch out of the reasonable ID range 1000-2147483647;
+- We propose `ldapsearch`es that will reveal POSIX users and groups that are outside of currently present ranges;
+- We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands to apply the changes.
 
 ## Sample outputs
 ```
