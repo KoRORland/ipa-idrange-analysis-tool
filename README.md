@@ -45,13 +45,26 @@ $ python3 idrange-analyse.py < tests/testranges
 | EXAMPLE.DOMAIN.LOCAL_extra_big_range |    ipa-local |   10000000 | 1230000000 | 1239999999 |            |               |                    |                    | 
 |     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Range sanity check
+--------------------------------------------------------------------------------
+
 WARNING! Range EXAMPLE.DOMAIN.LOCAL_under1000_range overlaps with default system local range (IDs lower 1000 are reserved for system and service users and groups)!
+
+--------------------------------------------------------------------------------
+LDAP searches to detect IDs out of ranges
+--------------------------------------------------------------------------------
 
 LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn gidNumber
+
+--------------------------------------------------------------------------------
+RID bases check
+--------------------------------------------------------------------------------
 
 Proposition for missing RID bases:
 
@@ -112,13 +125,26 @@ $ python3 idrange-analyse.py < tests/testranges_changed
 | EXAMPLE.DOMAIN.LOCAL_extra_big_range |    ipa-local |   10000000 | 1230000000 | 1239999999 |    2502000 |      12502000 |          102501000 |          112501000 | 
 |     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Range sanity check
+--------------------------------------------------------------------------------
+
 WARNING! Range EXAMPLE.DOMAIN.LOCAL_under1000_range overlaps with default system local range (IDs lower 1000 are reserved for system and service users and groups)!
+
+--------------------------------------------------------------------------------
+LDAP searches to detect IDs out of ranges
+--------------------------------------------------------------------------------
 
 LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn gidNumber
+
+--------------------------------------------------------------------------------
+RID bases check
+--------------------------------------------------------------------------------
 
 All RID bases are in order.
 
@@ -134,11 +160,26 @@ $ python3 idrange-analyse.py < tests/testranges2
 | EXAMPLE.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+Range sanity check
+--------------------------------------------------------------------------------
+
+All ranges seem to be in order.
+
+--------------------------------------------------------------------------------
+LDAP searches to detect IDs out of ranges
+--------------------------------------------------------------------------------
+
 LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=1861999999))(&(uidNumber>=1862200000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=1861999999))(&(uidNumber>=1862200000)(uidNumber<=2147483647))))" dn gidNumber
 
+--------------------------------------------------------------------------------
+RID bases check
+--------------------------------------------------------------------------------
+
 All RID bases are in order.
+
 ```
