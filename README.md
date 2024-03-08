@@ -28,7 +28,7 @@ python3 idrange-analyse.py < inputfile
 ## What does the tool do?
 
 All the code runs in memory, there are no changes to the input stream. 
-- We create an easy-looking table with data from the imput;
+- We create an easy-looking table with data from the input;
 - We check the ranges inputed are not overlapping or stretch out of the reasonable ID range 1000-2147483647;
 - We propose `ldapsearch`es that will reveal POSIX users and groups that are outside of currently present ranges;
 - We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands to apply the changes.
