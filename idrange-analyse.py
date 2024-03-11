@@ -127,9 +127,16 @@ def propose_rid_ranges(id_ranges, delta=100000):
         if proposed_base_rid > 0 or proposed_secondary_base_rid > 0:
             print(f"\n{current_range.range_name}: proposed values: Base RID = {current_range.base_rid}, Secondary Base RID = {current_range.secondary_base_rid}.")
             print("\nLDAP command to apply would look like: ")
-            print(f"~~~\n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\n{current_range.dn}\
-                  \nchangetype: modify\nadd: ipabaserid\nipabaserid: {current_range.base_rid}\n-\
-                  \nadd: ipasecondarybaserid\nipasecondarybaserid: {current_range.secondary_base_rid}\nEOF\n~~~")
+            print(f"~~~\
+                  \n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
+                  \n{current_range.dn}\
+                  \nchangetype: modify\
+                  \nadd: ipabaserid\nipabaserid: {current_range.base_rid}\
+                  \n-\
+                  \nadd: ipasecondarybaserid\
+                  \nipasecondarybaserid: {current_range.secondary_base_rid}\
+                  \nEOF\
+                  \n~~~")
 
 # Function to get ipa-local ranges only
 def get_ipa_local_ranges(id_ranges):
@@ -245,15 +252,15 @@ def parse_input(input_data):
             key, value = line.split(": ", 1)
             if key == "cn":
                 current_range.range_name = value
-            elif key == "ipabaseid" or key == "ipaBaseID":
+            elif key.lower() == "ipabaseid":
                 current_range.first_id = int(value)
-            elif key == "ipaidrangesize" or key == "ipaIDRangeSize":
+            elif key.lower() == "ipaidrangesize":
                 current_range.size = int(value)
-            elif key == "ipabaserid" or key == "ipaBaseRID":
+            elif key.lower() == "ipabaserid":
                 current_range.base_rid = int(value)
-            elif key == "ipasecondarybaserid" or key == "ipaSecondaryBaseRID":
+            elif key.lower() == "ipasecondarybaserid":
                 current_range.secondary_base_rid = int(value)
-            elif key == "iparangetype" or key == "ipaRangeType":
+            elif key.lower() == "iparangetype":
                 current_range.type = value
 
     if current_range:
