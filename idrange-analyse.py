@@ -131,7 +131,8 @@ def propose_rid_ranges(id_ranges, delta=100000):
                   \n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
                   \n{current_range.dn}\
                   \nchangetype: modify\
-                  \nadd: ipabaserid\nipabaserid: {current_range.base_rid}\
+                  \nadd: ipabaserid\
+                  \nipabaserid: {current_range.base_rid}\
                   \n-\
                   \nadd: ipasecondarybaserid\
                   \nipasecondarybaserid: {current_range.secondary_base_rid}\
