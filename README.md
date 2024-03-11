@@ -35,7 +35,7 @@ All the code runs in memory, there are no changes to the input stream.
 
 ## Sample outputs
 ```
-$ python3 idrange-analyse.py < tests/testranges
+$ python3 idrange-analyse.py < examples/testranges
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | range_name                           | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ EOF
 ```
 After proposed changes:
 ```
-$ python3 idrange-analyse.py < tests/testranges_changed 
+$ python3 idrange-analyse.py < examples/testranges_changed 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | range_name                           | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -149,13 +149,13 @@ RID bases check
 All RID bases are in order.
 
 ```
-Correct setup with AD trust:
+Correct setup with AD trust (output from `ldapsearch`):
 ```
-$ python3 idrange-analyse.py < tests/testranges2
+$ python3 idrange-analyse.py < examples/testranges_ldap 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
 | range_name                | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
-|      WIN23.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
+|  WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
 |    EXAMPLE.LOCAL_id_range |    ipa-local |     200000 | 1862000000 | 1862199999 |       1000 |        201000 |          100000000 |          100200000 | 
 | EXAMPLE.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
