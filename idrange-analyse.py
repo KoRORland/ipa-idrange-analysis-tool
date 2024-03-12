@@ -42,14 +42,14 @@ def generate_ldapsearch_commands(id_ranges_all, object_class, id, cn):
     # adding gaps in ranges to the filter
     for i in range(len(id_ranges)+1):
         if i == 0:
-            start_condition = f"(uidNumber>=1)"
+            start_condition = f"({id}Number>=1)"
         else:
-            start_condition = f"(uidNumber>={id_ranges[i-1].last_id + 1})"
+            start_condition = f"({id}Number>={id_ranges[i-1].last_id + 1})"
 
         if i < len(id_ranges):
-            end_condition = f"(uidNumber<={id_ranges[i].first_id - 1})"
+            end_condition = f"({id}Number<={id_ranges[i].first_id - 1})"
         else:
-            end_condition = "(uidNumber<=2147483647)"
+            end_condition = f"({id}Number<=2147483647)"
         
         filter += f"(&{start_condition}{end_condition})"
 
