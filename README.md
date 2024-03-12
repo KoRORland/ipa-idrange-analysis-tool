@@ -60,7 +60,7 @@ LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn gidNumber
+# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=899))(&(gidNumber>=1900)(gidNumber<=49999999))(&(gidNumber>=52000000)(gidNumber<=555499999))(&(gidNumber>=555700000)(gidNumber<=1229999999))(&(gidNumber>=1240000000)(gidNumber<=2147483647))))" dn gidNumber
 
 --------------------------------------------------------------------------------
 RID bases check
@@ -140,7 +140,7 @@ LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn gidNumber
+# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=899))(&(gidNumber>=1900)(gidNumber<=49999999))(&(gidNumber>=52000000)(gidNumber<=555499999))(&(gidNumber>=555700000)(gidNumber<=1229999999))(&(gidNumber>=1240000000)(gidNumber<=2147483647))))" dn gidNumber
 
 --------------------------------------------------------------------------------
 RID bases check
@@ -174,7 +174,7 @@ LDAP Search Commands for Users outside of ranges:
 # ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=1861999999))(&(uidNumber>=1862200000)(uidNumber<=2147483647))))" dn uidNumber
 
 LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=local" "(&(objectClass=posixgroup)(|(&(uidNumber>=1)(uidNumber<=1861999999))(&(uidNumber>=1862200000)(uidNumber<=2147483647))))" dn gidNumber
+# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=1861999999))(&(gidNumber>=1862200000)(gidNumber<=2147483647))))" dn gidNumber
 
 --------------------------------------------------------------------------------
 RID bases check
