@@ -54,7 +54,7 @@ def generate_ldapsearch_commands(id_ranges_all, object_class, id, cn):
         filter += f"(&{start_condition}{end_condition})"
 
     # adding command suffix
-    command += f"{filter}))\" dn {id}Number"
+    command += f"{filter}))\" dn {id}Number >> outofranges.ldif"
 
     return command
 
