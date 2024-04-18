@@ -1,5 +1,7 @@
 import sys
+import argparse
 
+# Class for ID Range
 class IDRange:
 
     def __init__(self):
@@ -14,6 +16,7 @@ class IDRange:
         self.last_base_rid = None
         self.last_secondary_rid = None
         self.dn = None
+        self.proposed = False
 
     def count(self):
         self.last_id = self.first_id + self.size - 1
@@ -24,6 +27,20 @@ class IDRange:
     def __repr__(self):
         return f"IDRange(range_name='{self.range_name}', type={self.type}, size={self.size}, first_id={self.first_id}, " \
                f"base_rid={self.base_rid}, secondary_base_rid={self.secondary_base_rid})"
+    
+# Class for ID entity 
+class IDentity:
+    def __init__(self):
+        self.dn = None
+        self.name = None
+        self.user = None
+        self.idnumber = None
+
+    def __repr__(self):
+        if self.user:
+            return f"IDentity:user(username='{self.name}', uid='{self.idnumber}', dn='{self.idnumber}')"
+        else:
+            return f"IDentity:group(groupname='{self.name}', gid='{self.idnumber}', dn='{self.idnumber}')"
 
 # Function to generate LDAPseach commands
 def generate_ldapsearch_commands(id_ranges_all, object_class, id, cn):
@@ -225,7 +242,7 @@ def check_rid_bases(id_ranges):
     return False
 
 # Function to parse input data and create IDRange instances
-def parse_input(input_data):
+def parse_idrange_input(input_data):
     id_ranges = []
     current_range = None
 
@@ -269,6 +286,71 @@ def parse_input(input_data):
 
     return id_ranges
 
+# Function to parse out of range input data and create IDentities instances
+def parse_outofrange_input(input_data):
+    identities = []
+    current_entity = None
+
+    for line in input_data.split('\n'):
+        line = line.strip()
+
+        if not line:
+            continue
+        if not ':' in line:
+            continue
+
+        if line.startswith("dn:"):
+            if current_entity:
+                identities.append(current_entity)
+            current_entity = IDentity()
+            current_entity.dn = line
+
+            # Extract the name from the DN line
+            name_cn = line.split()[1].split(',')[0].split('=')
+            current_entity.name = name_cn[1]
+
+            # Set user flag
+            if name_cn[0] == 'uid':
+                current_entity.user = True
+            else:
+                current_entity.user = False
+
+        # reading attributes
+        else:
+            key, value = line.split(": ", 1)
+            if key.lower() == "gidnumber":
+                current_entity.idnumber = int(value)
+            elif key.lower() == "uidnumber":
+                current_entity.idnumber = int(value)
+
+    if current_entity:
+        identities.append(current_entity)
+
+    return identities
+
+def group_identities_by_threshold(id_numbers, threshold):
+    # Sort the list of ID numbers
+    id_numbers.sort()
+
+    # Initialize groups
+    groups = []
+    currentgroup = []
+    # Iterate through the sorted list of ID numbers
+    for i in range(len(id_numbers) - 1):
+        # add id to current group
+        currentgroup.append(id_numbers[i])
+         
+        # If the difference with the next one is greater than the threshold, start a new group
+        if id_numbers[i + 1] - id_numbers[i] > threshold:
+            groups.append(currentgroup)
+            currentgroup = []
+
+    # Add the last ID number to the last group
+    currentgroup.append(id_numbers[-1])
+    groups.append(currentgroup)
+
+    return groups
+
 # Function to draw a pretty table
 def draw_ascii_table(id_ranges):
     # Calculate the maximum width required for each column including column names
@@ -302,41 +384,126 @@ def print_header(text):
     print(text)
     print(horizontal_line)          
 
-# Read input from stdin if provided
-if not sys.stdin.isatty():
+# function to read IDranges from stdin
+def read_input_from_stdin():
+    # Read input data from stdin
     input_data = sys.stdin.read()
-else:
-    print('No data came from STDIN!\nUsage: python3 printranges.py < ipa_idrange-find_--all_--raw_ouput')
-    exit(1)
+    return input_data.strip()
 
-# Parse the input data and create IDRange instances
-id_ranges = parse_input(input_data)
+# function to read data from file
+def read_input_from_file(file_path):
+    try:
+        # Read input data from the file
+        with open(file_path, 'r') as file:
+            input_data = file.read()
+            return input_data.strip()
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to read file '{file_path}'.")
+        print(e)
+        sys.exit(1)
 
-# calculate all the attributes
-for id_range in id_ranges:
-    id_range.count()
+def main():
+    range_data = ''
 
-# Sort the list of IDRange instances by the "First ID" attribute
-id_ranges.sort(key=lambda x: x.first_id)
+    # Create argument parser
+    parser = argparse.ArgumentParser(description="Tool to process IPA ID ranges data")
 
-# Draw the table with current ranges
-draw_ascii_table(id_ranges)
+    # Add optional arguments
+    parser.add_argument('--ranges', type=str, metavar='idranges', \
+                        help="Path to file containing ID ranges data - output of `ipa idrange-find --all --raw > idranges`")
+    parser.add_argument('--ridoffset', type=int, default=100000, metavar=100000, \
+                        help="Offset for a next base RID from previous RID range. Needed for future range size expansions. Have to be > 0")
+    parser.add_argument('--outofrange', type=str, metavar='outofranges.ldif', \
+                        help="Path to file for out of range users and groups, that we got from ldapsearches provided")
+    parser.add_argument('--rangegap', type=int, default=200000, metavar=200000, \
+                        help="Threshold for a gap between outofrange IDs to be considered a different range. Have to be > 0")
+    parser.add_argument('--minrange', type=int, default=10, metavar=10, \
+                        help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Have to be > 1")
+    
+    # Parse the command-line arguments
+    args = parser.parse_args()
 
-# Detect if there are any overlaps
-print_header("Range sanity check")
-detect_range_overlaps(id_ranges)
+    # Check sanity of int values:
+    if args.ridoffset < 0 or args.rangegap < 0 or args.minrange < 1:
+        print ("\nERROR: attribute error!\n")
+        parser.print_help()
+        sys.exit(1)
 
-# Generate LDAP Search commands for out of the ranges
-print_header("LDAP searches to detect IDs out of ranges")
-print("\nLDAP Search Commands for Users outside of ranges:")
-print(generate_ldapsearch_commands(id_ranges, "account", "uid", "users"))
-print("\nLDAP Search Commands for Groups outside of ranges:")
-print(generate_ldapsearch_commands(id_ranges, "group", "gid", "groups"))
+    # Check input sources and read data accordingly
+    if not sys.stdin.isatty():
+        # Data is coming from stdin
+        range_data = read_input_from_stdin()
+    elif args.ranges is not None:
+        # Data is provided via --ranges option
+        range_data = read_input_from_file(args.ranges)
+    else:
+        # No input source provided, show usage instructions
+        print ("\nERROR: no range input data found!")
+        parser.print_usage()
+        sys.exit(1)    
 
-# Propose RID bases if some are missing
-print_header("RID bases check")
-if (check_rid_bases(id_ranges)):
-    print("\nProposition for missing RID bases:")
-    propose_rid_ranges(id_ranges, delta=100000)
-else:
-    print("\nAll RID bases are in order.\n")
+    # Parse the input data and create IDRange instances
+    id_ranges = parse_idrange_input(range_data)
+
+    if len(id_ranges) <= 1:
+        # No valid range data provided, show usage instructions
+        print ("\nERROR: no valid ranges in input data!")
+        parser.print_usage()
+        sys.exit(1)         
+
+    # calculate all the attributes
+    for id_range in id_ranges:
+        id_range.count()
+
+    # Sort the list of IDRange instances by the "First ID" attribute
+    id_ranges.sort(key=lambda x: x.first_id)
+
+    # Draw the table with current ranges
+    draw_ascii_table(id_ranges)
+
+    # Detect if there are any overlaps
+    print_header("Range sanity check")
+    detect_range_overlaps(id_ranges)
+
+    # Propose RID bases if some are missing
+    print_header("RID bases check")
+    if (check_rid_bases(id_ranges)):
+        print("\nProposition for missing RID bases:")
+        propose_rid_ranges(id_ranges, args.ridoffset)
+    else:
+        print("\nAll RID bases are in order.\n")
+
+    # If outofrange file path provided, read and process it
+    if args.outofrange:
+        outofrange_data = read_input_from_file(args.outofrange)
+        # Process outofrange data
+        # Parse the input data and create IDRange instances
+        ids_outofrange = parse_outofrange_input(outofrange_data)
+        # ids_outofrange.sort(key=lambda x: x.idnumber)
+
+        id_numbers = [int(identity.idnumber) for identity in ids_outofrange]
+        groups = group_identities_by_threshold(id_numbers, args.rangegap)
+
+        print_header("IDranges for IDs out of ranges proposal")
+        for group in groups:
+            if len(group)>0: print (f"range: {group[0]}\t- {group[-1]};\tsize={group[-1]-group[0]+1}")
+            else: print("empty group!!")
+        print('\n\n')
+
+
+    # If data is not provided, provide searches how to provide 
+    else:
+        # Generate LDAP Search commands for out of the ranges
+        print_header("LDAP searches to detect IDs out of ranges")
+        print("\nLDAP Search Commands for Users outside of ranges:")
+        print(generate_ldapsearch_commands(id_ranges, "account", "uid", "users"))
+        print("\nLDAP Search Commands for Groups outside of ranges:")
+        print(generate_ldapsearch_commands(id_ranges, "group", "gid", "groups"))
+        print("\nYou can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.\n")
+
+if __name__ == "__main__":
+    main()
+
