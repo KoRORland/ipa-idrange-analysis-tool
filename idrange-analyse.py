@@ -351,7 +351,7 @@ def propose_range(group, id_ranges, delta, basename, counter):
     startid = group[0].number
     endid = group[-1].number
 
-    print(f"\nProposition for a range with with start id {startid} and end id {endid}:\n")
+    print(f"\nProposition for a range for existing IDs out of ranges with start id {startid} and end id {endid}:\n")
 
     newrange = IDRange()
     newrange.type = "ipa-local"
@@ -366,7 +366,8 @@ def propose_range(group, id_ranges, delta, basename, counter):
         newrange.size = newrange.last_id - newrange.first_id + 1
         # if we still failed, abandon idea
         if not newrange_overlap_check(id_ranges,newrange):
-            print("ERROR! Failed to create idrange for current group, it overlaps with existing range!")
+            print("ERROR! Failed to create idrange for current group, it overlaps with existing range!\
+                  \nRun the tool without --outofrange to get correct ldapsearches for IDs out of ranges!")
             return None
     
     # creating RID bases
@@ -607,6 +608,7 @@ def main():
     id_ranges.sort(key=lambda x: x.first_id)
 
     # Draw the table with current ranges
+    print_header("Range table")
     draw_ascii_table(id_ranges)
 
     # Detect if there are any overlaps
@@ -623,36 +625,36 @@ def main():
 
     # If outofrange file path provided, read and process it
     if args.outofrange:
+        print_header("IDranges for IDs out of ranges proposal")
+
         outofrange_data = read_input_from_file(args.outofrange)
         
         # Parse the input data and create IDRange instances
         ids_outofrange = parse_outofrange_input(outofrange_data)
         ids_outofrange.sort(key=lambda x: x.number)
-
-        print_header("IDranges for IDs out of ranges proposal")
-
+        
+        # Get initial divide of IDs into groups
         groups = group_identities_by_threshold(ids_outofrange, args.rangegap)
 
-        for group in groups:
-            if len(group)>0: print (f"range: {group[0].number}\t- {group[-1].number};\tsize={group[-1].number-group[0].number+1}")
-            else: print("empty group!!")
-        print('\n\n')
-
+        # Get outliers from too small groups and clean groups for further processing
         outliers, cleangroups = separate_ranges_and_outliers(groups, args.minrange)
 
+        # Print the outliers, they have to be moved manually
         if len(outliers) > 0:
             print("Following identities are too far away from the others to get ranges (try adjusting --minrange, or moving them to already created ranges):\n")
             for identity in outliers:
                 print(identity)
 
+        # Get IDranges base name
         basename = get_rangename_base(id_ranges)
 
+        # Create propositions for new ideranges
         for i in range(1,len(cleangroups)):
             newrange = propose_range(cleangroups[i-1], id_ranges, args.ridoffset, basename, i)
+            # If range creation didn't fail, add it to the collection
             if not newrange == None:
                 id_ranges.append(newrange)
-                id_ranges.sort(key=lambda x: x.first_id)        
-
+                id_ranges.sort(key=lambda x: x.first_id)
 
     # If data is not provided, provide searches how to provide 
     else:
@@ -664,8 +666,8 @@ def main():
         print(generate_ldapsearch_commands(id_ranges, "group", "gid", "groups"))
         print("\nYou can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.\n")
 
+   # Draw the table with all the things we proposed
     print_header("End result with proposed changes")
-    # Draw the table with all the things we proposed
     draw_ascii_table(id_ranges)
 
 if __name__ == "__main__":
