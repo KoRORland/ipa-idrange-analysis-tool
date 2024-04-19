@@ -561,13 +561,13 @@ def main():
     parser.add_argument('--ranges', type=str, metavar='idranges', \
                         help="Path to file containing ID ranges data - output of `ipa idrange-find --all --raw > idranges`")
     parser.add_argument('--ridoffset', type=int, default=100000, metavar=100000, \
-                        help="Offset for a next base RID from previous RID range. Needed for future range size expansions. Have to be > 0")
+                        help="Offset for a next base RID from previous RID range. Needed for future range size expansions. Has to be > 0")
     parser.add_argument('--outofrange', type=str, metavar='outofranges.ldif', \
                         help="Path to file for out of range users and groups, that we got from ldapsearches provided")
     parser.add_argument('--rangegap', type=int, default=200000, metavar=200000, \
-                        help="Threshold for a gap between outofrange IDs to be considered a different range. Have to be > 0")
+                        help="Threshold for a gap between outofrange IDs to be considered a different range. Has to be > 0")
     parser.add_argument('--minrange', type=int, default=10, metavar=10, \
-                        help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Have to be > 1")
+                        help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Has to be > 1")
     
     # Parse the command-line arguments
     args = parser.parse_args()
