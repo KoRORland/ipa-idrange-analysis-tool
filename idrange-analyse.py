@@ -1,11 +1,16 @@
 import sys
 import argparse
 
+"""
+Class definitions
+"""
+#region
+
 # Class for ID Range
 class IDRange:
 
     def __init__(self):
-        self.range_name = None
+        self.name = None
         self.size = None
         self.first_id = None
         self.base_rid = None
@@ -25,7 +30,7 @@ class IDRange:
             self.last_secondary_rid = self.secondary_base_rid + self.size if self.secondary_base_rid is not None else None
 
     def __repr__(self):
-        return f"IDRange(range_name='{self.range_name}', type={self.type}, size={self.size}, first_id={self.first_id}, " \
+        return f"IDRange(name='{self.name}', type={self.type}, size={self.size}, first_id={self.first_id}, " \
                f"base_rid={self.base_rid}, secondary_base_rid={self.secondary_base_rid})"
     
 # Class for ID entity 
@@ -34,13 +39,19 @@ class IDentity:
         self.dn = None
         self.name = None
         self.user = None
-        self.idnumber = None
+        self.number = None
 
     def __repr__(self):
         if self.user:
-            return f"IDentity:user(username='{self.name}', uid='{self.idnumber}', dn='{self.idnumber}')"
+            return f"user(username='{self.name}', uid='{self.number}', dn='{self.dn}')"
         else:
-            return f"IDentity:group(groupname='{self.name}', gid='{self.idnumber}', dn='{self.idnumber}')"
+            return f"group(groupname='{self.name}', gid='{self.number}', dn='{self.dn}')"
+
+#endregion
+"""
+Working with ranges
+"""
+#region
 
 # Function to generate LDAPseach commands
 def generate_ldapsearch_commands(id_ranges_all, object_class, id, cn):
@@ -84,15 +95,51 @@ def detect_range_overlaps(id_ranges):
     for i in range(len(id_ranges)):
         current_range = id_ranges[i]
         if current_range.first_id <= temp_id:
-            print("\nWARNING! Range {} overlaps with {}!".format(current_range.range_name, temp_name))
+            print("\nWARNING! Range {} overlaps with {}!".format(current_range.name, temp_name))
             err = True
         temp_id = current_range.last_id
-        temp_name = current_range.range_name
+        temp_name = current_range.name
     if (not err):
         print("\nAll ranges seem to be in order.")
 
+# Function to check if two ranges overlap
+def range_overlap_check(range1start, range1end, range2start, range2end):
+    # if range2start is inside range1, it's a fail
+    if range1start <= range2start and range1end >= range2start:
+        return False
+    # if range2end is inside range1, it's a fail
+    elif range1start <= range2end and range1end >= range2end:
+        return False
+    # if range1start is inside range2, it's a fail
+    elif range2start <= range1start and range2end >= range1start:
+        return False
+    else:
+        return True
+
+# Function to check if proposed range overlaps with existing ones
+def newrange_overlap_check(id_ranges,newrange):
+    for idrange in id_ranges:
+        if not range_overlap_check(idrange.first_id,idrange.last_id,newrange.first_id,newrange.last_id):
+            return False
+    return True
+
+# Function to get ipa-local ranges only
+def get_ipa_local_ranges(id_ranges):
+    ipa_local_ranges = []
+
+    for i in range(len(id_ranges)):
+        if id_ranges[i].type == "ipa-local":
+            ipa_local_ranges.append(id_ranges[i])
+
+    return ipa_local_ranges
+
+#endregion
+"""
+Working with RID bases
+"""
+#region
 # Function to propose RID bases
-def propose_rid_ranges(id_ranges, delta=100000):
+def propose_rid_ranges(id_ranges, delta):
     # delta repersents for far we start new base off existing range, used in order to allow for future expansion of existing ranges up to [delta] IDs
     ipa_local_ranges = get_ipa_local_ranges(id_ranges)
 
@@ -103,46 +150,28 @@ def propose_rid_ranges(id_ranges, delta=100000):
 
         # Calculate proposed base RID and secondary base RID
         if current_range.base_rid is None:
-            # we are getting the biggest primary base RID + size + delta and try if it's a viable option
-            proposed_base_rid = max_rid(ipa_local_ranges, True) + delta
-            if check_rid_base(ipa_local_ranges, proposed_base_rid, current_range.size):
+            result, proposed_base_rid = propose_rid_base(current_range, ipa_local_ranges, delta, True)
+            if (result):
                 current_range.base_rid = proposed_base_rid
                 current_range.last_base_rid = proposed_base_rid + current_range.size
             else:
-                # if we fail, we try the same with biggest secondary base RID
-                proposed_base_rid_orig = proposed_base_rid
-                proposed_base_rid = max_rid(ipa_local_ranges, False) + delta
-                if check_rid_base(ipa_local_ranges, proposed_base_rid, current_range.size):
-                    current_range.base_rid = proposed_base_rid
-                    current_range.last_base_rid = proposed_base_rid + current_range.size
-                else:
-                    # if it fails, we print the warning and abandon the RID proposal for the range
-                    print(f"Warning: Proposed base RIDs {proposed_base_rid_orig} and {proposed_base_rid} for {current_range.range_name} \
-                        both failed, please adjust manually")
-                    continue
+                # if this fails too, we print the warning and abandon the idea
+                print(f"Warning: Proposed base RIDs {proposed_base_rid} for {current_range.name} both failed, please adjust manually")
+                continue
 
         if current_range.secondary_base_rid is None:
-            # we are getting the biggest secondary RID + size + delta and try if it's a viable option
-            proposed_secondary_base_rid = max_rid(ipa_local_ranges, False) + delta
-            if check_rid_base(ipa_local_ranges, proposed_secondary_base_rid, current_range.size):
+            result, proposed_secondary_base_rid = propose_rid_base(current_range, ipa_local_ranges, delta, False)
+            if (result):
                 current_range.secondary_base_rid = proposed_secondary_base_rid
                 current_range.last_secondary_rid = proposed_secondary_base_rid + current_range.size
             else:
-                # if it fails, it might be because the base RID we've set up earlier, so we check if changing to primary base RID helps
-                proposed_secondary_base_rid_orig = proposed_secondary_base_rid
-                proposed_secondary_base_rid = max_rid(ipa_local_ranges, True) + delta
-                if check_rid_base(ipa_local_ranges, proposed_secondary_base_rid, current_range.size):
-                    current_range.secondary_base_rid = proposed_secondary_base_rid
-                    current_range.last_secondary_rid = proposed_secondary_base_rid + current_range.size
-                else:
-                    # if this fails too, we print the warning and abandon the idea
-                    print(f"Warning: Proposed secondary base RIDs {proposed_secondary_base_rid_orig} and {proposed_secondary_base_rid} \
-                        for {current_range.range_name} failed, please adjust manually")
-                    continue
+                # if this fails too, we print the warning and abandon the idea
+                print(f"Warning: Proposed secondary base RIDs {proposed_secondary_base_rid} for {current_range.name} failed, please adjust manually")
+                continue
 
         # Genertate an LDAP command if we changed something successfully
         if proposed_base_rid > 0 or proposed_secondary_base_rid > 0:
-            print(f"\n{current_range.range_name}: proposed values: Base RID = {current_range.base_rid}, Secondary Base RID = {current_range.secondary_base_rid}.")
+            print(f"\n{current_range.name}: proposed values: Base RID = {current_range.base_rid}, Secondary Base RID = {current_range.secondary_base_rid}.")
             print("\nLDAP command to apply would look like: ")
             print(f"~~~\
                   \n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
@@ -155,16 +184,22 @@ def propose_rid_ranges(id_ranges, delta=100000):
                   \nipasecondarybaserid: {current_range.secondary_base_rid}\
                   \nEOF\
                   \n~~~")
-
-# Function to get ipa-local ranges only
-def get_ipa_local_ranges(id_ranges):
-    ipa_local_ranges = []
-
-    for i in range(len(id_ranges)):
-        if id_ranges[i].type == "ipa-local":
-            ipa_local_ranges.append(id_ranges[i])
-
-    return ipa_local_ranges
+            
+# Function to propose primary base RID
+def propose_rid_base(idrange, ipa_local_ranges, delta, primary=True):
+    # we are getting the biggest base RID + size + delta and try if it's a viable option, check same kind first
+    proposed_base_rid = max_rid(ipa_local_ranges, primary) + delta
+    if check_rid_base(ipa_local_ranges, proposed_base_rid, idrange.size):
+        return True, proposed_base_rid
+    else:
+        # if we fail, we try the same with biggest of a different kind
+        proposed_base_rid_orig = proposed_base_rid
+        proposed_base_rid = max_rid(ipa_local_ranges, not primary) + delta
+        if check_rid_base(ipa_local_ranges, proposed_base_rid, idrange.size):
+            return True, proposed_base_rid
+        else:
+            # if it fails, we return both RID proposals for the range
+            return False, f"{proposed_base_rid_orig} and {proposed_base_rid}"    
 
 # Funtion to get maximum used primary or secondary RID
 def max_rid(id_ranges, primary=True):
@@ -207,13 +242,11 @@ def check_rid_base(id_ranges, base, size, debug=False):
         if current_range.base_rid is None:
             continue
 
-        # if either start of end of the range fails iside existing range, or existing range is inside proposed one, we have an overlap
-        if (base >= current_range.base_rid and base <= current_range.last_base_rid) or \
-            (end >= current_range.base_rid and end <= current_range.last_base_rid) or \
-            (current_range.base_rid > base and current_range.base_rid < end):
+        # checking for an overlap
+        if not range_overlap_check(base, end, current_range.base_rid, current_range.last_base_rid):
             if (debug):
                 print(f"RID check failure: proposed pri {base} + {size}, intersects with {current_range.base_rid}-\
-                    {current_range.last_base_rid} from {current_range.range_name}")
+                    {current_range.last_base_rid} from {current_range.name}")
             return False
         
         # if there is no secondary base rid set, nothing to overlap with
@@ -221,12 +254,10 @@ def check_rid_base(id_ranges, base, size, debug=False):
             continue
 
         # if either start of end of the range fails iside existing range, or existing range is inside proposed one, we have an overlap
-        if (base >= current_range.secondary_base_rid and base <= current_range.last_secondary_rid) or \
-            (end >= current_range.secondary_base_rid and end <= current_range.last_secondary_rid) or \
-            (current_range.secondary_base_rid > base and current_range.secondary_base_rid < end):
+        if not range_overlap_check(base, end, current_range.secondary_base_rid, current_range.last_secondary_rid):
             if (debug):
                 print(f"RID check failure: proposed sec {base} + {size}, intersects with {current_range.secondary_base_rid}-\
-                    {current_range.last_secondary_rid} from {current_range.range_name}")
+                    {current_range.last_secondary_rid} from {current_range.name}")
             return False
 
     return True
@@ -240,6 +271,134 @@ def check_rid_bases(id_ranges):
             return True
         
     return False
+
+#endregion
+"""
+Working with IDentities out of range
+"""
+# region
+# Function to get outofrange IDs into groups to create ranges
+def group_identities_by_threshold(identities, threshold):
+    groups = []
+    currentgroup = []
+
+    for i in range(len(identities) - 1):
+        # add id to current group
+        currentgroup.append(identities[i])
+         
+        # If the difference with the next one is greater than the threshold, start a new group
+        if identities[i + 1].number - identities[i].number > threshold:
+            groups.append(currentgroup)
+            currentgroup = []
+
+    # Add the last ID number to the last group
+    currentgroup.append(identities[-1])
+    groups.append(currentgroup)
+
+    return groups
+
+# Function to get users from groups that are smaller then minimum range size
+def separate_ranges_and_outliers(groups, minrangesize):
+    outliers = []
+    cleangroups = []
+    for group in groups:
+        # if group is smaller than minrangesize, add it's memebers to ourliers
+        if group[-1].number-group[0].number+1 < minrangesize:
+            for identity in group:
+                outliers.append(identity)
+        # if the group is OK, add it to cleaned groups
+        else:
+            cleangroups.append(group)
+    
+    return outliers, cleangroups
+
+# Function to try change proposed range into rounded margins
+def round_idrange(start, end):
+    # calculating power of the size
+    sizepower = len(str(end - start + 1))
+    # multiplier for the nearest rounded number
+    multiplier = 10 ** (sizepower - 1)
+    # getting rounded range margins
+    rounded_start = (start // multiplier) * multiplier
+    rounded_end = ((end + multiplier - 1) // multiplier) * multiplier - 1
+
+    return rounded_start, rounded_end
+
+# Function to get a range name for proposal
+def get_rangename_base(id_ranges):
+    proposed_name = ''
+    
+    # we want to use default range name as a base for new ranges
+    for range in id_ranges:
+        if range.base_rid == 1000:
+            proposed_name = range.name
+    
+    if proposed_name == '': proposed_name = 'Propoposed_range_name'
+
+    return proposed_name
+
+# Function to produce a command to create a range
+def create_range_command(idrange):
+    # if we failed to create rid bases, at least return incomplete command
+    if idrange.base_rid == None or idrange.secondary_base_rid == None:
+        return f"# ipa idrange-add {idrange.name} --base-id={idrange.first_id} --range-size={idrange.size}"
+
+    return f"# ipa idrange-add {idrange.name} --base-id={idrange.first_id} --range-size={idrange.size} \
+--rid-base={idrange.base_rid} --secondary-rid-base={idrange.secondary_base_rid}" 
+
+# Function to try and create a new range from group
+def propose_range(group, id_ranges, delta, basename, counter):
+    startid = group[0].number
+    endid = group[-1].number
+
+    print(f"\nProposition for a range with with start id {startid} and end id {endid}:\n")
+
+    newrange = IDRange()
+    newrange.type = "ipa-local"
+    newrange.name = f"{basename}_{counter:03}"
+    newrange.first_id, newrange.last_id = round_idrange(startid, endid)
+    newrange.size = newrange.last_id - newrange.first_id + 1
+
+    # if this creates an overlap, try without rounding
+    if not newrange_overlap_check(id_ranges,newrange):
+        newrange.first_id = startid
+        newrange.last_id = endid
+        newrange.size = newrange.last_id - newrange.first_id + 1
+        # if we still failed, abandon idea
+        if not newrange_overlap_check(id_ranges,newrange):
+            print("ERROR! Failed to create idrange for current group, it overlaps with existing range!")
+            return None
+    
+    # creating RID bases
+    ipa_local_ranges = get_ipa_local_ranges(id_ranges)
+
+    result, proposed_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, True)
+    if (result):
+        newrange.base_rid = proposed_base_rid
+        newrange.last_base_rid = proposed_base_rid + newrange.size
+    else:
+        # if this fails we print the warning
+        print(f"Warning! Proposed base RIDs {proposed_base_rid} for new range start id {newrange.first_id} and \
+            end id {newrange.last_id} both failed, please adjust manually")
+    
+    result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False)
+    if (result):
+        newrange.secondary_base_rid = proposed_secondary_base_rid
+        newrange.last_secondary_rid = proposed_secondary_base_rid + newrange.size
+    else:
+        # if this fails we print the warning
+        print(f"Warning! Proposed secondary base RIDs {proposed_secondary_base_rid} for new range start id {newrange.first_id} and \
+            end id {newrange.last_id} both failed, please adjust manually")
+        
+    print(f"{create_range_command(newrange)}")
+    
+    return newrange
+
+#endregion
+"""
+Working with input flows
+"""
+#region
 
 # Function to parse input data and create IDRange instances
 def parse_idrange_input(input_data):
@@ -269,7 +428,7 @@ def parse_idrange_input(input_data):
         else:
             key, value = line.split(": ", 1)
             if key == "cn":
-                current_range.range_name = value
+                current_range.name = value
             elif key.lower() == "ipabaseid":
                 current_range.first_id = int(value)
             elif key.lower() == "ipaidrangesize":
@@ -319,42 +478,44 @@ def parse_outofrange_input(input_data):
         else:
             key, value = line.split(": ", 1)
             if key.lower() == "gidnumber":
-                current_entity.idnumber = int(value)
+                current_entity.number = int(value)
             elif key.lower() == "uidnumber":
-                current_entity.idnumber = int(value)
+                current_entity.number = int(value)
 
     if current_entity:
         identities.append(current_entity)
 
     return identities
 
-def group_identities_by_threshold(id_numbers, threshold):
-    # Sort the list of ID numbers
-    id_numbers.sort()
+# function to read IDranges from stdin
+def read_input_from_stdin():
+    # Read input data from stdin
+    input_data = sys.stdin.read()
+    return input_data.strip()
 
-    # Initialize groups
-    groups = []
-    currentgroup = []
-    # Iterate through the sorted list of ID numbers
-    for i in range(len(id_numbers) - 1):
-        # add id to current group
-        currentgroup.append(id_numbers[i])
-         
-        # If the difference with the next one is greater than the threshold, start a new group
-        if id_numbers[i + 1] - id_numbers[i] > threshold:
-            groups.append(currentgroup)
-            currentgroup = []
-
-    # Add the last ID number to the last group
-    currentgroup.append(id_numbers[-1])
-    groups.append(currentgroup)
-
-    return groups
-
+# function to read data from file
+def read_input_from_file(file_path):
+    try:
+        # Read input data from the file
+        with open(file_path, 'r') as file:
+            input_data = file.read()
+            return input_data.strip()
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to read file '{file_path}'.")
+        print(e)
+        sys.exit(1)
+#endregion
+"""
+Working with output
+"""
+#region
 # Function to draw a pretty table
 def draw_ascii_table(id_ranges):
     # Calculate the maximum width required for each column including column names
-    max_widths = {column: max(len(str(column)), max(len(str(getattr(id_range, column))) if getattr(id_range, column) is not None else 0 for id_range in id_ranges)) for column in ["range_name", "type", "size", "first_id", "last_id", "base_rid", "last_base_rid", "secondary_base_rid", "last_secondary_rid"]}
+    max_widths = {column: max(len(str(column)), max(len(str(getattr(id_range, column))) if getattr(id_range, column) is not None else 0 for id_range in id_ranges)) for column in ["name", "type", "size", "first_id", "last_id", "base_rid", "last_base_rid", "secondary_base_rid", "last_secondary_rid"]}
 
     # Draw the table header
     header = "| "
@@ -384,26 +545,10 @@ def print_header(text):
     print(text)
     print(horizontal_line)          
 
-# function to read IDranges from stdin
-def read_input_from_stdin():
-    # Read input data from stdin
-    input_data = sys.stdin.read()
-    return input_data.strip()
-
-# function to read data from file
-def read_input_from_file(file_path):
-    try:
-        # Read input data from the file
-        with open(file_path, 'r') as file:
-            input_data = file.read()
-            return input_data.strip()
-    except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error: Failed to read file '{file_path}'.")
-        print(e)
-        sys.exit(1)
+#endregion
+"""
+Main
+"""
 
 def main():
     range_data = ''
@@ -479,19 +624,34 @@ def main():
     # If outofrange file path provided, read and process it
     if args.outofrange:
         outofrange_data = read_input_from_file(args.outofrange)
-        # Process outofrange data
+        
         # Parse the input data and create IDRange instances
         ids_outofrange = parse_outofrange_input(outofrange_data)
-        # ids_outofrange.sort(key=lambda x: x.idnumber)
-
-        id_numbers = [int(identity.idnumber) for identity in ids_outofrange]
-        groups = group_identities_by_threshold(id_numbers, args.rangegap)
+        ids_outofrange.sort(key=lambda x: x.number)
 
         print_header("IDranges for IDs out of ranges proposal")
+
+        groups = group_identities_by_threshold(ids_outofrange, args.rangegap)
+
         for group in groups:
-            if len(group)>0: print (f"range: {group[0]}\t- {group[-1]};\tsize={group[-1]-group[0]+1}")
+            if len(group)>0: print (f"range: {group[0].number}\t- {group[-1].number};\tsize={group[-1].number-group[0].number+1}")
             else: print("empty group!!")
         print('\n\n')
+
+        outliers, cleangroups = separate_ranges_and_outliers(groups, args.minrange)
+
+        if len(outliers) > 0:
+            print("Following identities are too far away from the others to get ranges (try adjusting --minrange, or moving them to already created ranges):\n")
+            for identity in outliers:
+                print(identity)
+
+        basename = get_rangename_base(id_ranges)
+
+        for i in range(1,len(cleangroups)):
+            newrange = propose_range(cleangroups[i-1], id_ranges, args.ridoffset, basename, i)
+            if not newrange == None:
+                id_ranges.append(newrange)
+                id_ranges.sort(key=lambda x: x.first_id)        
 
 
     # If data is not provided, provide searches how to provide 
@@ -503,6 +663,10 @@ def main():
         print("\nLDAP Search Commands for Groups outside of ranges:")
         print(generate_ldapsearch_commands(id_ranges, "group", "gid", "groups"))
         print("\nYou can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.\n")
+
+    print_header("End result with proposed changes")
+    # Draw the table with all the things we proposed
+    draw_ascii_table(id_ranges)
 
 if __name__ == "__main__":
     main()
