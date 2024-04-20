@@ -21,19 +21,19 @@ cd ipa-idrange-analysis-tool
 ### Basic first step
 Get the output for existing IPA ranges to the file:
 ```
-ipa idrange-show --all --raw > idranges
+ipa idrange-find --all --raw > idranges.txt
 ```
 or via `ldapsearch`:
 ```
-ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=ranges,cn=etc,$SUFFIX" "(objectClass=ipaIDrange)" > idranges
+ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=ranges,cn=etc,$SUFFIX" "(objectClass=ipaIDrange)" > idranges.txt
 ```
 and then provide it to the tool as an argument:
 ```
-python3 idrange-analyse.py --ranges idranges
+python3 idrange-analyse.py --ranges idranges.txt
 ```
 or straightaway via `stdin`:
 ```
-ipa idrange-show --all --raw | python3 idrange-analyse.py
+ipa idrange-find --all --raw | python3 idrange-analyse.py
 ```
 ### Range proposal for users and groups that are out of the ranges
 After first basic run, the tool will provide `ldapsearch`es to determine users and groups outside of existing IPA ranges. You can provide resulting `outofranges.ldif` as an argument to get advice on which ranges to create:
@@ -91,7 +91,7 @@ Default IPA local IDrange has RID bases of `base_rid = 1000` and `secondary_base
 base_rid =  last base_rid + last range size + offset
 secondary_base_rid = last secondary_base_rid + last range size + offset
 ```
-Offset is used to offer the ability to extend already set ranges in the future, by the ID numbers no longer than the offset. It is a tunable parameter (`--ridoffset INT`).
+Offset is used to offer the ability to extend already existing ranges in the future, by the number of IDS no bigger than the offset. It is a tunable parameter (`--ridoffset INT`).
 
 If this fails for any reason, the tool will fall back to this logic:
 ```
@@ -103,7 +103,7 @@ If both logics failed, it is likely due to constraints violation - either we are
 ### IDranges propositions
 
 Dissecting an unknown set of IDs into viable IDranges is not a trivial task. During design consideration for this feature, we faced following constraints:
-- IDranges have to be rather populated, we don't want huge gaps to be empty;
+- IDranges have to be rather populated, we don't want huge gaps inside ranges to be empty;
 - IDranges have to be rather small, we don't want IDranges covering millions and millions of IDs, even though it is possible, it may pose a problem during ID mappings in IPA-IPA trust;
 - IDranges have to be rather small in amount, we don't want thousands of ultra-small IDranges to litter the installation. It is possible, and in rare cases, required, to create an IDrange for just one entity, but we don't want to make it a rule. Too many IDranges can negatively affect performance;
 - we still want the script to be easy-running on basically every system with Python3, so no sophisticated statistical libraries should be used;
@@ -126,15 +126,49 @@ This can introduce unexpected overlaps, so if this rounding fails, the range wil
 Rounding can be turned off by using `--norounding` attribute.
 
 ## Sample outputs
+Help output:
 ```
-$ python3 idrange-analyse.py < examples/testranges
+python3 idrange-analyse.py --help
+usage: idrange-analyse.py [-h] [--ranges idranges] [--ridoffset 100000]
+                          [--outofrange outofranges.ldif] [--rangegap 200000]
+                          [--minrange 10] [--allowunder1000] [--norounding]
+
+Tool to process IPA ID ranges data
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --ranges idranges     Path to file containing ID ranges data - output of
+                        `ipa idrange-find --all --raw > idranges`
+  --ridoffset 100000    Offset for a next base RID from previous RID range.
+                        Needed for future range size expansions. Has to be > 0
+  --outofrange outofranges.ldif
+                        Path to file for out of range users and groups, that
+                        we got from ldapsearches provided
+  --rangegap 200000     Threshold for a gap between outofrange IDs to be
+                        considered a different range. Has to be > 0
+  --minrange 10         Minimal considered range size for outofrange IDs. All
+                        ranges lower than this number will be discarded and
+                        IDs will be listed to be moved. Has to be > 1
+  --allowunder1000      Allow idranges to start below 1000. Be careful to not
+                        overlap IPA users/groups with existing system-local
+                        ones!
+  --norounding          Disable IDrange rounding attempt in order to get
+                        ranges exactly covering just IDs provided
+```
+Output with test ranges:
+```
+$ python3 idrange-analyse.py --ranges examples/ranges.txt
+
+--------------------------------------------------------------------------------
+Range table
+--------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| range_name                           | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
+| name                                 | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 | EXAMPLE.DOMAIN.LOCAL_under1000_range |    ipa-local |       1000 |        900 |       1899 |            |               |                    |                    | 
 |    EXAMPLE.DOMAIN.LOCAL_middle_range |    ipa-local |    2000000 |   50000000 |   51999999 |            |               |                    |                    | 
-|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 |  555500000 |  555699999 |       1000 |        201000 |          100000000 |          100200000 | 
-| EXAMPLE.DOMAIN.LOCAL_extra_big_range |    ipa-local |   10000000 | 1230000000 | 1239999999 |            |               |                    |                    | 
+|             WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
+|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 | 1397400000 | 1397599999 |       1000 |        201000 |          100000000 |          100200000 | 
 |     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -143,16 +177,6 @@ Range sanity check
 --------------------------------------------------------------------------------
 
 WARNING! Range EXAMPLE.DOMAIN.LOCAL_under1000_range overlaps with default system local range (IDs lower 1000 are reserved for system and service users and groups)!
-
---------------------------------------------------------------------------------
-LDAP searches to detect IDs out of ranges
---------------------------------------------------------------------------------
-
-LDAP Search Commands for Users outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
-
-LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=899))(&(gidNumber>=1900)(gidNumber<=49999999))(&(gidNumber>=52000000)(gidNumber<=555499999))(&(gidNumber>=555700000)(gidNumber<=1229999999))(&(gidNumber>=1240000000)(gidNumber<=2147483647))))" dn gidNumber
 
 --------------------------------------------------------------------------------
 RID bases check
@@ -163,13 +187,13 @@ Proposition for missing RID bases:
 EXAMPLE.DOMAIN.LOCAL_under1000_range: proposed values: Base RID = 301000, Secondary Base RID = 100300000.
 
 LDAP command to apply would look like: 
-~~~
+~~~                  
 # ldapmodify -D "cn=Directory Manager" -W -x << EOF
-dn: cn=EXAMPLE.DOMAIN.LOCAL_under1000_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local                  
+dn: cn=EXAMPLE.DOMAIN.LOCAL_under1000_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
 changetype: modify
 add: ipabaserid
 ipabaserid: 301000
--                  
+-
 add: ipasecondarybaserid
 ipasecondarybaserid: 100300000
 EOF
@@ -178,79 +202,60 @@ EOF
 EXAMPLE.DOMAIN.LOCAL_middle_range: proposed values: Base RID = 402000, Secondary Base RID = 100401000.
 
 LDAP command to apply would look like: 
-~~~
+~~~                  
 # ldapmodify -D "cn=Directory Manager" -W -x << EOF
-dn: cn=EXAMPLE.DOMAIN.LOCAL_middle_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local                  
+dn: cn=EXAMPLE.DOMAIN.LOCAL_middle_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
 changetype: modify
 add: ipabaserid
 ipabaserid: 402000
--                  
+-
 add: ipasecondarybaserid
 ipasecondarybaserid: 100401000
 EOF
 ~~~
-
-EXAMPLE.DOMAIN.LOCAL_extra_big_range: proposed values: Base RID = 2502000, Secondary Base RID = 102501000.
-
-LDAP command to apply would look like: 
-~~~
-# ldapmodify -D "cn=Directory Manager" -W -x << EOF
-dn: cn=EXAMPLE.DOMAIN.LOCAL_extra_big_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local                  
-changetype: modify
-add: ipabaserid
-ipabaserid: 2502000
--                  
-add: ipasecondarybaserid
-ipasecondarybaserid: 102501000
-EOF
-~~~
-```
-After proposed changes:
-```
-$ python3 idrange-analyse.py < examples/testranges_changed 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| range_name                           | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-| EXAMPLE.DOMAIN.LOCAL_under1000_range |    ipa-local |       1000 |        900 |       1899 |     301000 |        302000 |          100300000 |          100301000 | 
-|    EXAMPLE.DOMAIN.LOCAL_middle_range |    ipa-local |    2000000 |   50000000 |   51999999 |     402000 |       2402000 |          100401000 |          102401000 | 
-|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 |  555500000 |  555699999 |       1000 |        201000 |          100000000 |          100200000 | 
-| EXAMPLE.DOMAIN.LOCAL_extra_big_range |    ipa-local |   10000000 | 1230000000 | 1239999999 |    2502000 |      12502000 |          102501000 |          112501000 | 
-|     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
---------------------------------------------------------------------------------
-Range sanity check
---------------------------------------------------------------------------------
-
-WARNING! Range EXAMPLE.DOMAIN.LOCAL_under1000_range overlaps with default system local range (IDs lower 1000 are reserved for system and service users and groups)!
 
 --------------------------------------------------------------------------------
 LDAP searches to detect IDs out of ranges
 --------------------------------------------------------------------------------
 
 LDAP Search Commands for Users outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=555499999))(&(uidNumber>=555700000)(uidNumber<=1229999999))(&(uidNumber>=1240000000)(uidNumber<=2147483647))))" dn uidNumber
+# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=899))(&(uidNumber>=1900)(uidNumber<=49999999))(&(uidNumber>=52000000)(uidNumber<=1397399999))(&(uidNumber>=1397600000)(uidNumber<=2147483647))))" dn uidNumber >> outofranges.ldif
 
 LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=899))(&(gidNumber>=1900)(gidNumber<=49999999))(&(gidNumber>=52000000)(gidNumber<=555499999))(&(gidNumber>=555700000)(gidNumber<=1229999999))(&(gidNumber>=1240000000)(gidNumber<=2147483647))))" dn gidNumber
+# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=domain,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=899))(&(gidNumber>=1900)(gidNumber<=49999999))(&(gidNumber>=52000000)(gidNumber<=1397399999))(&(gidNumber>=1397600000)(gidNumber<=2147483647))))" dn gidNumber >> outofranges.ldif
+
+You can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.
+
 
 --------------------------------------------------------------------------------
-RID bases check
+End result with proposed changes
 --------------------------------------------------------------------------------
-
-All RID bases are in order.
-
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| name                                 | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| EXAMPLE.DOMAIN.LOCAL_under1000_range |    ipa-local |       1000 |        900 |       1899 |     301000 |        302000 |          100300000 |          100301000 | 
+|    EXAMPLE.DOMAIN.LOCAL_middle_range |    ipa-local |    2000000 |   50000000 |   51999999 |     402000 |       2402000 |          100401000 |          102401000 | 
+|             WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
+|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 | 1397400000 | 1397599999 |       1000 |        201000 |          100000000 |          100200000 | 
+|     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```
-Correct setup with AD trust (output from `ldapsearch`):
+After proposed changes, and with outofranges.ldif provided by proposed searches:
 ```
-$ python3 idrange-analyse.py < examples/testranges_ldap 
-----------------------------------------------------------------------------------------------------------------------------------------------------------
-| range_name                | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
-----------------------------------------------------------------------------------------------------------------------------------------------------------
-|  WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
-|    EXAMPLE.LOCAL_id_range |    ipa-local |     200000 | 1862000000 | 1862199999 |       1000 |        201000 |          100000000 |          100200000 | 
-| EXAMPLE.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
-----------------------------------------------------------------------------------------------------------------------------------------------------------
+$ python3 idrange-analyse.py --ranges examples/ranges_changed.txt --outofrange examples/outofranges.ldif
+
+--------------------------------------------------------------------------------
+Range table
+--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| name                                 | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| EXAMPLE.DOMAIN.LOCAL_under1000_range |    ipa-local |       1000 |       1010 |       2009 |     301000 |        302000 |          100300000 |          100301000 | 
+|    EXAMPLE.DOMAIN.LOCAL_middle_range |    ipa-local |    2000000 |   50000000 |   51999999 |     402000 |       2402000 |          100401000 |          102401000 | 
+|             WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
+|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 | 1397400000 | 1397599999 |       1000 |        201000 |          100000000 |          100200000 | 
+|     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
 Range sanity check
@@ -259,19 +264,39 @@ Range sanity check
 All ranges seem to be in order.
 
 --------------------------------------------------------------------------------
-LDAP searches to detect IDs out of ranges
---------------------------------------------------------------------------------
-
-LDAP Search Commands for Users outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=users,cn=accounts,dc=example,dc=local" "(&(objectClass=posixaccount)(|(&(uidNumber>=1)(uidNumber<=1861999999))(&(uidNumber>=1862200000)(uidNumber<=2147483647))))" dn uidNumber
-
-LDAP Search Commands for Groups outside of ranges:
-# ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=groups,cn=accounts,dc=example,dc=local" "(&(objectClass=posixgroup)(|(&(gidNumber>=1)(gidNumber<=1861999999))(&(gidNumber>=1862200000)(gidNumber<=2147483647))))" dn gidNumber
-
---------------------------------------------------------------------------------
 RID bases check
 --------------------------------------------------------------------------------
 
 All RID bases are in order.
 
+
+--------------------------------------------------------------------------------
+IDranges for IDs out of ranges proposal
+--------------------------------------------------------------------------------
+
+Following identities have IDs lower 1000, which is not recommeneded (if you definitely need ranges proposed for those, use --allowunder1000):
+
+group(groupname='under1000group', gid='101', dn='dn: cn=under1000group,cn=groups,cn=accounts,dc=example,dc=domain,dc=local')
+
+Following identities are too far away from the others to get ranges (try adjusting --minrange, or moving them to already created ranges):
+
+group(groupname='outliergroup', gid='1010000', dn='dn: cn=outliergroup,cn=groups,cn=accounts,dc=example,dc=domain,dc=local')
+
+Proposition for a range for existing IDs out of ranges with start id 10001 and end id 10025:
+
+# ipa idrange-add EXAMPLE.DOMAIN.LOCAL_id_range_001 --base-id=10000 --range-size=30 --rid-base=2502000 --secondary-rid-base=102501000
+
+--------------------------------------------------------------------------------
+End result with proposed changes
+--------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| name                                 | type         | size       | first_id   | last_id    | base_rid   | last_base_rid | secondary_base_rid | last_secondary_rid | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| EXAMPLE.DOMAIN.LOCAL_under1000_range |    ipa-local |       1000 |       1010 |       2009 |     301000 |        302000 |          100300000 |          100301000 | 
+|    EXAMPLE.DOMAIN.LOCAL_id_range_001 |    ipa-local |         30 |      10000 |      10029 |    2502000 |       2502030 |          102501000 |          102501030 | 
+|    EXAMPLE.DOMAIN.LOCAL_middle_range |    ipa-local |    2000000 |   50000000 |   51999999 |     402000 |       2402000 |          100401000 |          102401000 | 
+|             WINDOMAIN.LOCAL_id_range | ipa-ad-trust |     200000 | 1001600000 | 1001799999 |          0 |               |                    |                    | 
+|        EXAMPLE.DOMAIN.LOCAL_id_range |    ipa-local |     200000 | 1397400000 | 1397599999 |       1000 |        201000 |          100000000 |          100200000 | 
+|     EXAMPLE.DOMAIN.LOCAL_subid_range | ipa-ad-trust | 2147352576 | 2147483648 | 4294836223 | 2147283648 |               |                    |                    | 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ```

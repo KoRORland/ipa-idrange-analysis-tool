@@ -174,16 +174,16 @@ def propose_rid_ranges(id_ranges, delta):
             print(f"\n{current_range.name}: proposed values: Base RID = {current_range.base_rid}, Secondary Base RID = {current_range.secondary_base_rid}.")
             print("\nLDAP command to apply would look like: ")
             print(f"~~~\
-                  \n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
-                  \n{current_range.dn}\
-                  \nchangetype: modify\
-                  \nadd: ipabaserid\
-                  \nipabaserid: {current_range.base_rid}\
-                  \n-\
-                  \nadd: ipasecondarybaserid\
-                  \nipasecondarybaserid: {current_range.secondary_base_rid}\
-                  \nEOF\
-                  \n~~~")
+\n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
+\n{current_range.dn}\
+\nchangetype: modify\
+\nadd: ipabaserid\
+\nipabaserid: {current_range.base_rid}\
+\n-\
+\nadd: ipasecondarybaserid\
+\nipasecondarybaserid: {current_range.secondary_base_rid}\
+\nEOF\
+\n~~~")
             
 # Function to propose primary base RID
 def propose_rid_base(idrange, ipa_local_ranges, delta, primary=True):
@@ -305,7 +305,7 @@ def separate_under1000(identities):
                 # all ids are over 1000
                 return [],identities
             else:
-                return identities[0:i-1],identities[i:]
+                return identities[0:i],identities[i+1:]
     # no ids over 1000 found
     return identities,[]
 
@@ -315,7 +315,7 @@ def separate_ranges_and_outliers(groups, minrangesize):
     cleangroups = []
     for group in groups:
         # if group is smaller than minrangesize, add it's memebers to ourliers
-        if group[-1].number-group[0].number+1 < minrangesize:
+        if group[-1].number - group[0].number + 1 < minrangesize :
             for identity in group:
                 outliers.append(identity)
         # if the group is OK, add it to cleaned groups
@@ -399,7 +399,7 @@ def propose_range(group, id_ranges, delta, basename, counter, norounding):
     else:
         # if this fails we print the warning
         print(f"Warning! Proposed base RIDs {proposed_base_rid} for new range start id {newrange.first_id} and \
-            end id {newrange.last_id} both failed, please adjust manually")
+end id {newrange.last_id} both failed, please adjust manually")
     
 
     result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False)
@@ -409,7 +409,7 @@ def propose_range(group, id_ranges, delta, basename, counter, norounding):
     else:
         # if this fails we print the warning
         print(f"Warning! Proposed secondary base RIDs {proposed_secondary_base_rid} for new range start id {newrange.first_id} and \
-            end id {newrange.last_id} both failed, please adjust manually")
+end id {newrange.last_id} both failed, please adjust manually")
         
     print(f"{create_range_command(newrange)}")
     
@@ -682,8 +682,8 @@ def main():
         basename = get_rangename_base(id_ranges)
 
         # Create propositions for new ideranges
-        for i in range(1,len(cleangroups)):
-            newrange = propose_range(cleangroups[i-1], id_ranges, args.ridoffset, basename, i, args.norounding)
+        for i in range(len(cleangroups)):
+            newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+1, args.norounding)
             # If range creation didn't fail, add it to the collection
             if not newrange == None:
                 id_ranges.append(newrange)
@@ -697,7 +697,7 @@ def main():
         print(generate_ldapsearch_commands(id_ranges, "account", "uid", "users"))
         print("\nLDAP Search Commands for Groups outside of ranges:")
         print(generate_ldapsearch_commands(id_ranges, "group", "gid", "groups"))
-        print("\nYou can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.\n")
+        print("\nYou can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.")
 
    # Draw the table with all the things we proposed
     print_header("End result with proposed changes")
