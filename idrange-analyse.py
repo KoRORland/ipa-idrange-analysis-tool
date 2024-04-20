@@ -358,7 +358,7 @@ def create_range_command(idrange):
 --rid-base={idrange.base_rid} --secondary-rid-base={idrange.secondary_base_rid}" 
 
 # Function to try and create a new range from group
-def propose_range(group, id_ranges, delta, basename, counter):
+def propose_range(group, id_ranges, delta, basename, counter, norounding):
     startid = group[0].number
     endid = group[-1].number
 
@@ -369,9 +369,14 @@ def propose_range(group, id_ranges, delta, basename, counter):
     newrange.type = "ipa-local"
     newrange.name = f"{basename}_{counter:03}"
 
-    # first trying to round up ranges to look pretty
-    newrange.first_id, newrange.last_id = round_idrange(startid, endid)
-    newrange.size = newrange.last_id - newrange.first_id + 1
+    if (norounding):
+        newrange.first_id = startid
+        newrange.last_id = endid
+        newrange.size = newrange.last_id - newrange.first_id + 1
+    else:
+        # first trying to round up ranges to look pretty
+        newrange.first_id, newrange.last_id = round_idrange(startid, endid)
+        newrange.size = newrange.last_id - newrange.first_id + 1
 
     # if this creates an overlap, try without rounding
     if not newrange_overlap_check(id_ranges,newrange):
@@ -396,7 +401,7 @@ def propose_range(group, id_ranges, delta, basename, counter):
         print(f"Warning! Proposed base RIDs {proposed_base_rid} for new range start id {newrange.first_id} and \
             end id {newrange.last_id} both failed, please adjust manually")
     
-    
+
     result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False)
     if (result):
         newrange.secondary_base_rid = proposed_secondary_base_rid
@@ -585,6 +590,8 @@ def main():
                         help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Has to be > 1")
     parser.add_argument('--allowunder1000', action="store_true",\
                         help="Allow idranges to start below 1000. Be careful to not overlap IPA users/groups with existing system-local ones!")
+    parser.add_argument('--norounding', action="store_true",\
+                        help="Disable IDrange rounding attempt in order to get ranges exactly covering just IDs provided")
     
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -676,7 +683,7 @@ def main():
 
         # Create propositions for new ideranges
         for i in range(1,len(cleangroups)):
-            newrange = propose_range(cleangroups[i-1], id_ranges, args.ridoffset, basename, i)
+            newrange = propose_range(cleangroups[i-1], id_ranges, args.ridoffset, basename, i, args.norounding)
             # If range creation didn't fail, add it to the collection
             if not newrange == None:
                 id_ranges.append(newrange)
