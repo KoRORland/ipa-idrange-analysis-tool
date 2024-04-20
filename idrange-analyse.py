@@ -281,6 +281,8 @@ Working with IDentities out of range
 def group_identities_by_threshold(identities, threshold):
     groups = []
     currentgroup = []
+    if len(identities) == 0:
+        return groups
 
     for i in range(len(identities) - 1):
         # add id to current group
@@ -299,13 +301,13 @@ def group_identities_by_threshold(identities, threshold):
 
 # Function to remove identities with numbers under 1000 (expects sorted array):
 def separate_under1000(identities):
-    for i in range (0,len(identities)-1):
+    for i in range(len(identities)):
         if identities[i].number >=1000:
             if i==0:
                 # all ids are over 1000
                 return [],identities
             else:
-                return identities[0:i],identities[i+1:]
+                return identities[:i],identities[i:]
     # no ids over 1000 found
     return identities,[]
 
@@ -332,7 +334,7 @@ def round_idrange(start, end):
     multiplier = 10 ** (sizepower - 1)
     # getting rounded range margins
     rounded_start = (start // multiplier) * multiplier
-    rounded_end = ((end + multiplier - 1) // multiplier) * multiplier - 1
+    rounded_end = ((end + multiplier) // multiplier) * multiplier - 1
 
     return rounded_start, rounded_end
 
@@ -678,16 +680,19 @@ def main():
             for identity in outliers:
                 print(identity)
 
-        # Get IDranges base name
-        basename = get_rangename_base(id_ranges)
+        if len(cleangroups) > 0:
+            # Get IDranges base name
+            basename = get_rangename_base(id_ranges)
 
-        # Create propositions for new ideranges
-        for i in range(len(cleangroups)):
-            newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+1, args.norounding)
-            # If range creation didn't fail, add it to the collection
-            if not newrange == None:
-                id_ranges.append(newrange)
-                id_ranges.sort(key=lambda x: x.first_id)
+            # Create propositions for new ideranges
+            for i in range(len(cleangroups)):
+                newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+1, args.norounding)
+                # If range creation didn't fail, add it to the collection
+                if not newrange == None:
+                    id_ranges.append(newrange)
+                    id_ranges.sort(key=lambda x: x.first_id)
+        else:
+            print("\nNo IDs fit for ID range to propose! Try tuning the parameters!")
 
     # If data is not provided, provide searches how to provide 
     else:
