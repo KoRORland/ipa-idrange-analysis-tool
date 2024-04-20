@@ -62,7 +62,7 @@ A flag to allow proposing ranges that start with IDs lower than 1000. Remember, 
 ```
 --norounding
 ```
-A flag to turn off idrange starting id and size rounding - e.g. if we find ID 1234, and the size 567, it will stay that way, proposed range will start at ID 1234, and have a 567 size.
+A flag to turn off idrange starting id and size rounding - e.g. if we find ID 1234, and the size 567, it will stay that way, proposed range will start at ID 1234, and have a 567 size. If not specified, basic rounding to outer margins will be applied.
 
 ## What does the tool do?
 
