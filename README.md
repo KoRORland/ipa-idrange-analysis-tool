@@ -5,6 +5,7 @@ A tool for analysis of existing IPA ranges, and providing advise on how to resol
 It is able to provide a easily digestible table representation on already configured ranges, alongside some common issues and commands that would help troublesooting issues with IPA ID ranges, mostly following this solution - [How to solve users unable to authenticate to IPA/IDM with PAC issues - S4U2PROXY_EVIDENCE_TKT_WITHOUT_PAC error](https://access.redhat.com/solutions/7052703).
 
 **DISCLAIMER** 
+
 Please check the commands you run on you IPA installation thoroughly *before* you run them. This tool provides a mere advise on how to approach IPA idrange issues, author bears no responsibility for the commands you run on your IPA installation.
 
 ## Getting started
@@ -70,12 +71,15 @@ All the code runs in memory, there are no changes to the input stream(s).
 - We create an easy-looking table with data from the input;
 - We check the ranges inputed are not overlapping or stretch out of the reasonable ID range 1000-2147483647;
 - We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands to apply the changes;
+
 If no identities out of ranges are provided:
 - We propose `ldapsearch`es that will reveal POSIX users and groups that are outside of currently present ranges;
+
 If identities out of ranges are provided:
 - We provide porpositions on what ranges to create to cover most of the identities provided;
 - We provide a list of 'outliers' - users and groups too far away and too small in number to get a separate idrange;
 - We provide a list of users and group with IDs under 1000, to be moved out of system-reserved range manually;
+
 As a finale of the run tool creates a second table on how the ranges will look like if all the advises are applied.
 
 ## Sample outputs
