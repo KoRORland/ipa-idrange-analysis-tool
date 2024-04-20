@@ -645,7 +645,7 @@ def main():
         print("\nProposition for missing RID bases:")
         propose_rid_ranges(id_ranges, args.ridoffset)
     else:
-        print("\nAll RID bases are in order.\n")
+        print("\nAll RID bases are in order.")
 
     # If outofrange file path provided, read and process it
     if args.outofrange:

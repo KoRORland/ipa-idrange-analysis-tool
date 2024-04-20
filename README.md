@@ -226,7 +226,6 @@ LDAP Search Commands for Groups outside of ranges:
 
 You can provide the resulting file as --outofrange option to this tool to get advise on which ranges to create.
 
-
 --------------------------------------------------------------------------------
 End result with proposed changes
 --------------------------------------------------------------------------------
@@ -268,7 +267,6 @@ RID bases check
 --------------------------------------------------------------------------------
 
 All RID bases are in order.
-
 
 --------------------------------------------------------------------------------
 IDranges for IDs out of ranges proposal
