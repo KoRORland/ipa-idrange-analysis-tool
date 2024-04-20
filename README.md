@@ -41,28 +41,28 @@ After first basic run, the tool will provide `ldapsearch`es to determine users a
 python3 idrange-analyse.py --ranges idranges --outofrange outofranges.ldif
 ```
 ### Advanced attributes
-```
---ridoffset INT
-```
+
+`--ridoffset INT`
+
 An offset tool is using to propose new base RIDs for ranges. We introduce offset in order to have an ability to increase ranges in the future, increase to more than offset will result to RID bases overlapping, and will be denied. If set to 0, there will be no offset, proposed RID ranges will start directly one after another.
 Default - 100000, allowed values - from 0 to 2^31
-```
---rangegap INT
-```
+
+`--rangegap INT`
+
 A number of IDs between out of ranges IDs to be considered to big to be inside a proposed range. If the gap is bigger than this attribute, new range will be started. If set to 0, every entity will get it's own range, if allowed by `--minrange`.
 Default - 200000, allowed values - from 0 to 2^31
-```
---minrange INT
-```
+
+`--minrange INT`
+
 A minimal size of IDs in a range the tool considers to be a valid range. All IDs in ranges with less than this number will be considered outliers, not worth creating an IDrange for, and will be listed explicitly to be moved manually. If set to 1, every entity, even if single in the middle of an empty space, will be proposed with a range.
 Default - 10, allowed values - from 1 to 2^31
-```
---allowunder1000
-```
+
+`--allowunder1000`
+
 A flag to allow proposing ranges that start with IDs lower than 1000. Remember, this is not recommended - IDs under 1000 are reserved for system and service users and groups, and IDranges with these low IDs may result with overlapping of IPA and system local users and groups, which can be a serious security issue and generally produce a lot of issues around these entities' resolution.
-```
---norounding
-```
+
+`--norounding`
+
 A flag to turn off idrange starting id and size rounding - e.g. if we find ID 1234, and the size 567, it will stay that way, the proposed range will start at ID 1234, and have a 567 size. If not specified, basic rounding to outer margins will be applied.
 
 ## What does the tool do?
