@@ -1,0 +1,151 @@
+
+dn: uid=user10001,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10001
+
+dn: uid=user10002,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10002
+
+dn: uid=user10003,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10003
+
+dn: uid=user10004,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10004
+
+dn: uid=user10005,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10005
+
+dn: uid=user10006,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10006
+
+dn: uid=user10007,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10007
+
+dn: uid=user10008,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10008
+
+dn: uid=user10009,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10009
+
+dn: uid=user10011,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10011
+
+dn: uid=user10012,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10012
+
+dn: uid=user10013,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10013
+
+dn: uid=user10014,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10014
+
+dn: uid=user10015,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10015
+
+dn: uid=user10016,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10016
+
+dn: uid=user10017,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10017
+
+dn: uid=user10018,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10018
+
+dn: uid=user10019,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10019
+
+dn: uid=user10020,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10020
+
+dn: uid=user10021,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10021
+
+dn: uid=user10022,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10022
+
+dn: uid=user10023,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10023
+
+dn: uid=user10024,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10024
+
+dn: uid=user10025,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10025
+
+dn: cn=user10001,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10001
+
+dn: cn=user10002,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10002
+
+dn: cn=user10003,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10003
+
+dn: cn=user10004,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10004
+
+dn: cn=user10005,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10005
+
+dn: cn=user10006,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10006
+
+dn: cn=user10007,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10007
+
+dn: cn=user10008,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10008
+
+dn: cn=user10009,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10009
+
+dn: cn=user10011,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10011
+
+dn: cn=user10012,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10012
+
+dn: cn=user10013,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10013
+
+dn: cn=user10014,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10014
+
+dn: cn=user10015,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10015
+
+dn: cn=user10016,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10016
+
+dn: cn=user10017,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10017
+
+dn: cn=user10018,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10018
+
+dn: cn=user10019,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10019
+
+dn: cn=user10020,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10020
+
+dn: cn=user10021,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10021
+
+dn: cn=user10022,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10022
+
+dn: cn=user10023,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10023
+
+dn: cn=user10024,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10024
+
+dn: cn=user10025,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 10025
+
+dn: cn=under1000group,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 101
+
+dn: cn=outliergroup,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 1010000
+

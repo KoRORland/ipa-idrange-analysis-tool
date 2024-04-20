@@ -1,0 +1,59 @@
+----------------
+5 ranges matched
+----------------
+  dn: cn=EXAMPLE.DOMAIN.LOCAL_id_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
+  cn: EXAMPLE.DOMAIN.LOCAL_id_range
+  ipabaseid: 1397400000
+  ipaidrangesize: 200000
+  ipabaserid: 1000
+  ipasecondarybaserid: 100000000
+  iparangetype: ipa-local
+  objectclass: top
+  objectclass: ipaIDrange
+  objectclass: ipaDomainIDRange
+
+  dn: cn=EXAMPLE.DOMAIN.LOCAL_middle_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
+  cn: EXAMPLE.DOMAIN.LOCAL_middle_range
+  ipabaseid: 50000000
+  ipaidrangesize: 2000000
+  ipabaserid: 402000
+  ipasecondarybaserid: 100401000
+  iparangetype: ipa-local
+  objectclass: ipaIDrange
+  objectclass: ipadomainidrange
+
+  dn: cn=EXAMPLE.DOMAIN.LOCAL_subid_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
+  cn: EXAMPLE.DOMAIN.LOCAL_subid_range
+  ipabaseid: 2147483648
+  ipaidrangesize: 2147352576
+  ipabaserid: 2147283648
+  ipanttrusteddomainsid: S-1-5-21-738065-838566-3650198140
+  iparangetype: ipa-ad-trust
+  objectclass: top
+  objectclass: ipaIDrange
+  objectclass: ipaTrustedADDomainRange
+
+  dn: cn=EXAMPLE.DOMAIN.LOCAL_under1000_range,cn=ranges,cn=etc,dc=example,dc=domain,dc=local
+  cn: EXAMPLE.DOMAIN.LOCAL_under1000_range
+  ipabaseid: 1010
+  ipaidrangesize: 1000
+  ipabaserid: 301000
+  ipasecondarybaserid: 100300000
+  iparangetype: ipa-local
+  objectclass: ipaIDrange
+  objectclass: ipadomainidrange
+
+  dn: cn=WINDOMAIN.LOCAL_id_range,cn=ranges,cn=etc,dc=example,dc=local
+  ipaAutoPrivateGroups: true
+  cn: WINDOMAIN.LOCAL_id_range
+  ipaBaseID: 1001600000
+  ipaIDRangeSize: 200000
+  ipaBaseRID: 0
+  ipaNTTrustedDomainSID: S-1-5-21-3014607317-3340640230-4186965532
+  ipaRangeType: ipa-ad-trust
+  objectClass: ipaIDrange
+  objectClass: ipatrustedaddomainrange
+----------------------------
+Number of entries returned 5
+----------------------------
+
