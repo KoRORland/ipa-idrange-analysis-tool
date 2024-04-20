@@ -297,6 +297,18 @@ def group_identities_by_threshold(identities, threshold):
 
     return groups
 
+# Function to remove identities with numbers under 1000 (expects sorted array):
+def separate_under1000(identities):
+    for i in range (0,len(identities)-1):
+        if identities[i].number >=1000:
+            if i==0:
+                # all ids are over 1000
+                return [],identities
+            else:
+                return identities[0:i-1],identities[i:]
+    # no ids over 1000 found
+    return identities,[]
+
 # Function to get users from groups that are smaller then minimum range size
 def separate_ranges_and_outliers(groups, minrangesize):
     outliers = []
@@ -333,6 +345,7 @@ def get_rangename_base(id_ranges):
         if range.base_rid == 1000:
             proposed_name = range.name
     
+    # if we didn't find it, propose generic name
     if proposed_name == '': proposed_name = 'Propoposed_range_name'
 
     return proposed_name
@@ -568,6 +581,8 @@ def main():
                         help="Threshold for a gap between outofrange IDs to be considered a different range. Has to be > 0")
     parser.add_argument('--minrange', type=int, default=10, metavar=10, \
                         help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Has to be > 1")
+    parser.add_argument('--allowunder1000', action="store_true",\
+                        help="Allow proposition of idranges below 1000. Be careful to not overlap IPA users/groups with existing system-local ones!")
     
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -632,6 +647,14 @@ def main():
         # Parse the input data and create IDRange instances
         ids_outofrange = parse_outofrange_input(outofrange_data)
         ids_outofrange.sort(key=lambda x: x.number)
+
+        # If creating range under 1000 is not allowed, we should remove and note users under 1000
+        if not args.allowunder1000:
+            under1000, ids_outofrange = separate_under1000(ids_outofrange)
+            if len(under1000) > 0:
+                print("\nFollowing identities have IDs lowe 1000, which is not recommeneded (if you definitely need ranges proposed for those, use --allowunder1000):\n")
+                for identity in under1000:
+                    print(identity)
         
         # Get initial divide of IDs into groups
         groups = group_identities_by_threshold(ids_outofrange, args.rangegap)
@@ -641,7 +664,7 @@ def main():
 
         # Print the outliers, they have to be moved manually
         if len(outliers) > 0:
-            print("Following identities are too far away from the others to get ranges (try adjusting --minrange, or moving them to already created ranges):\n")
+            print("\nFollowing identities are too far away from the others to get ranges (try adjusting --minrange, or moving them to already created ranges):\n")
             for identity in outliers:
                 print(identity)
 
