@@ -128,7 +128,7 @@ Rounding can be turned off by using `--norounding` attribute.
 ## Sample outputs
 Help output:
 ```
-python3 idrange-analyse.py --help
+$ python3 idrange-analyse.py --help
 usage: idrange-analyse.py [-h] [--ranges idranges] [--ridoffset 100000]
                           [--outofrange outofranges.ldif] [--rangegap 200000]
                           [--minrange 10] [--allowunder1000] [--norounding]
