@@ -86,18 +86,18 @@ As a finale of the run tool creates a second table on how the ranges will look l
 
 ### RID base selection
 
-Default IPA local IDrange has RID bases of base_rid = 1000 and secondary_base_rid = 100000000. The tool will try to propose the RID bases in same logic:
-
+Default IPA local IDrange has RID bases of `base_rid = 1000` and `secondary_base_rid = 100000000`. The tool will try to propose the RID bases in same logic:
+```
 base_rid =  last base_rid + last range size + offset
 secondary_base_rid = last secondary_base_rid + last range size + offset
-
-Offset is used to offer the ability to extend already set ranges in the future, by the ID numbers no longer than the offset. It is a tunable parameter.
+```
+Offset is used to offer the ability to extend already set ranges in the future, by the ID numbers no longer than the offset. It is a tunable parameter (`--ridoffset INT`).
 
 If this fails for any reason, the tool will fall back to this logic:
-
+```
 base_rid = biggest RID of any kind + offset
 secondary_base_rid =  biggest RID of any kind, including already proposed base_rid, + offset
-
+```
 If both logics failed, it is likely due to constraints violation - either we are going over 2^31, which is reserved for SubID RIDs, or we have some unforeseen overlaps. In this case, the script will put out the bases it tried and failed, and will continue without proposing a valid bases.
 
 ### IDranges propositions
@@ -109,7 +109,7 @@ Dissecting an unknown set of IDs into viable IDranges is not a trivial task. Dur
 - we still want the script to be easy-running on basically every system with Python3, so no sophisticated statistical libraries should be used;
 - the solution needs to be flexible enough to account for various scenarios existing in deployed installations.
 
-The solution was to introduce tunable parameters: minimal IDrange size and maximum gap allowed. 
+The solution was to introduce tunable parameters: minimal IDrange size (`--minrange INT`) and maximum gap allowed(`--rangegap INT`). 
 
 The algorithm works like this:
 - array of identities is sorted;
