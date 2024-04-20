@@ -82,6 +82,49 @@ If identities out of ranges are provided:
 
 As a finale of the run tool creates a second table on how the ranges will look like if all the advices are applied.
 
+## Design considerations
+
+### RID base selection
+
+Default IPA local IDrange has RID bases of base_rid = 1000 and secondary_base_rid = 100000000. The tool will try to propose the RID bases in same logic:
+
+base_rid =  last base_rid + last range size + offset
+secondary_base_rid = last secondary_base_rid + last range size + offset
+
+Offset is used to offer the ability to extend already set ranges in the future, by the ID numbers no longer than the offset. It is a tunable parameter.
+
+If this fails for any reason, the tool will fall back to this logic:
+
+base_rid = biggest RID of any kind + offset
+secondary_base_rid =  biggest RID of any kind, including already proposed base_rid, + offset
+
+If both logics failed, it is likely due to constraints violation - either we are going over 2^31, which is reserved for SubID RIDs, or we have some unforeseen overlaps. In this case, the script will put out the bases it tried and failed, and will continue without proposing a valid bases.
+
+### IDranges propositions
+
+Dissecting an unknown set of IDs into viable IDranges is not a trivial task. During design consideration for this feature, we faced following constraints:
+- IDranges have to be rather populated, we don't want huge gaps to be empty;
+- IDranges have to be rather small, we don't want IDranges covering millions and millions of IDs, even though it is possible, it may pose a problem during ID mappings in IPA-IPA trust;
+- IDranges have to be rather small in amount, we don't want thousands of ultra-small IDranges to litter the installation. It is possible, and in rare cases, required, to create an IDrange for just one entity, but we don't want to make it a rule. Too many IDranges can negatively affect performance;
+- we still want the script to be easy-running on basically every system with Python3, so no sophisticated statistical libraries should be used;
+- the solution needs to be flexible enough to account for various scenarios existing in deployed installations.
+
+The solution was to introduce tunable parameters: minimal IDrange size and maximum gap allowed. 
+
+The algorithm works like this:
+- array of identities is sorted;
+- then array is split into groups via finding big enough gaps between IDs, if big enough gap is detected, it starts a new group;
+- then these groups are analyzed, if there are groups that are too small in size, the IDs in that group are declared as outliers, not worth creating a separate IDrange for, and will be listed separately;
+- for the remaining groups, IDranges are proposed.
+
+### IDranges rounding
+
+Due to the historical nature of identities out of IPA ranges, they rarely fit into rounded ranges that are easy to digest by a user. The solution was to propose ranges that are rounded to the outer margins to the next closest 'round' number to beginning and the end of the range, depending on the range size. Thus, ranges with a size of hundreds will be rounded to closest outer round hundreds, ranges with the size of hundred thousands will be rounded to closest hundred thousands. 
+
+This can introduce unexpected overlaps, so if this rounding fails, the range will be proposed without any rounding.
+
+Rounding can be turned off by using `--norounding` attribute.
+
 ## Sample outputs
 ```
 $ python3 idrange-analyse.py < examples/testranges
