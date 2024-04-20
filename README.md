@@ -1,18 +1,15 @@
 # IPA IDrange Analysis tool
 
-A simple tool that accepts output of 
-```
-ipa idrange-find --all --raw
-```
-or 
-```
-ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=ranges,cn=etc,$SUFFIX" "(objectClass=ipaIDrange)"
-```
-and returns currently configured IPA ID ranges in digestible way, alongside some common issues and commands that would help troublesooting issues with IPA ID ranges, mostly following this solution - [How to solve users unable to authenticate to IPA/IDM with PAC issues - S4U2PROXY_EVIDENCE_TKT_WITHOUT_PAC error](https://access.redhat.com/solutions/7052703).
+A tool for analysis of existing IPA ranges, and providing advise on how to resolve issues, add new ranges, etc.
+
+It is able to provide a easily digestible table representation on already configured ranges, alongside some common issues and commands that would help troublesooting issues with IPA ID ranges, mostly following this solution - [How to solve users unable to authenticate to IPA/IDM with PAC issues - S4U2PROXY_EVIDENCE_TKT_WITHOUT_PAC error](https://access.redhat.com/solutions/7052703).
+
+**DISCLAIMER** 
+Please check the commands you run on you IPA installation thoroughly *before* you run them. This tool provides a mere advise on how to approach IPA idrange issues, author bears no responsibility for the commands you run on your IPA installation.
 
 ## Getting started
 
-This is a simple Python3 script, with no external libraries apart from `sys` so it should run on basically any system where `python3` is installed.
+This is a simple Python3 script, with no external libraries apart from `sys` and `argparse` so it should run on basically any system where `python3` is installed.
 
 ```
 git clone https://gitlab.cee.redhat.com/gss-emea/ipa-idrange-analysis-tool.git
@@ -20,18 +17,66 @@ cd ipa-idrange-analysis-tool
 ```
 
 ## Using the tool
-
+### Basic first step
+Get the output for existing IPA ranges to the file:
 ```
-python3 idrange-analyse.py < inputfile
+ipa idrange-show --all --raw > idranges
 ```
+or via `ldapsearch`:
+```
+ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=ranges,cn=etc,$SUFFIX" "(objectClass=ipaIDrange)" > idranges
+```
+and then provide it to the tool as an argument:
+```
+python3 idrange-analyse.py --ranges idranges
+```
+or strightaway via `stdin`:
+```
+ipa idrange-show --all --raw | python3 idrange-analyse.py
+```
+### Range proposal for users and groups that are out of the ranges
+After frist basic run, the tool will provide `ldapsearch`es to determine users and groups outside on existing IPA ranges. You can provide resulting `outofranges.ldif` as an argument to get advise on which ranges to create:
+```
+python3 idrange-analyse.py --ranges idranges --outofrange outofranges.ldif
+```
+### Advanced attributes
+```
+--ridoffset INT
+```
+An offset tool is considering to propose new base RIDs for ranges. We indroduce offset in order to have an ability to increase ranges in the future, increase to more than offset will result to RID bases overlap, and will be denied. If set to 0, there will be no offset, proposed RID ranges will start directly one after another.
+Default - 100000, allowed values - from 0 to 2^31
+```
+--rangegap INT
+```
+A unmber of IDs between out of ranges IDs to be considered to big to be inside a proposed range. If the gap is bigger than this attribute, new range will be started. If set to 0, every entity will get it's own range, if allowed by `--minrange`.
+Default - 200000, allowed values - from 0 to 2^31
+```
+--minrange INT
+```
+A minital size of IDs in a range the tool considers to be a valid range. All IDs in ranges with less than this number will be considered outliers, not worth to create an IDrange for, and will be listed explisitly to be moved manually. If set to 1, every entity, even if single in the middle of an empty space, will be proposed with a range.
+Default - 10, allowed values - from 1 to 2^31
+```
+--allowunder1000
+```
+A flag to allow proposing ranges that start with IDs lower than 1000. Remember, this is not recommended - IDs under 1000 are reserved for system and service users and groups, and IDranges with these low IDs may result with overlapping of IPA and system local users and groups, which can be a serious security issue and generally produce a lot of issues around these entities resolution.
+```
+--norounding
+```
+A flag to turn off idrange starting id and size rounding - e.g. if we find ID 1234, and the size 567, it will stay that way, proposed range will start at ID 1234, and have a 567 size.
 
 ## What does the tool do?
 
-All the code runs in memory, there are no changes to the input stream. 
+All the code runs in memory, there are no changes to the input stream(s).
 - We create an easy-looking table with data from the input;
 - We check the ranges inputed are not overlapping or stretch out of the reasonable ID range 1000-2147483647;
+- We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands to apply the changes;
+If no identities out of ranges are provided:
 - We propose `ldapsearch`es that will reveal POSIX users and groups that are outside of currently present ranges;
-- We try to porpose suitable RID bases to fill in the missing ones alongside the `ldapmodify` commands to apply the changes.
+If identities out of ranges are provided:
+- We provide porpositions on what ranges to create to cover most of the identities provided;
+- We provide a list of 'outliers' - users and groups too far away and too small in number to get a separate idrange;
+- We provide a list of users and group with IDs under 1000, to be moved out of system-reserved range manually;
+As a finale of the run tool creates a second table on how the ranges will look like if all the advises are applied.
 
 ## Sample outputs
 ```
