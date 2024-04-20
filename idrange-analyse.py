@@ -324,7 +324,7 @@ def separate_ranges_and_outliers(groups, minrangesize):
     
     return outliers, cleangroups
 
-# Function to try change proposed range into rounded margins
+# Function to round up range margins
 def round_idrange(start, end):
     # calculating power of the size
     sizepower = len(str(end - start + 1))
@@ -338,13 +338,11 @@ def round_idrange(start, end):
 
 # Function to get a range name for proposal
 def get_rangename_base(id_ranges):
-    proposed_name = ''
-    
+    proposed_name = ''    
     # we want to use default range name as a base for new ranges
     for range in id_ranges:
         if range.base_rid == 1000:
             proposed_name = range.name
-    
     # if we didn't find it, propose generic name
     if proposed_name == '': proposed_name = 'Propoposed_range_name'
 
@@ -366,9 +364,12 @@ def propose_range(group, id_ranges, delta, basename, counter):
 
     print(f"\nProposition for a range for existing IDs out of ranges with start id {startid} and end id {endid}:\n")
 
+    # creating new range
     newrange = IDRange()
     newrange.type = "ipa-local"
     newrange.name = f"{basename}_{counter:03}"
+
+    # first trying to round up ranges to look pretty
     newrange.first_id, newrange.last_id = round_idrange(startid, endid)
     newrange.size = newrange.last_id - newrange.first_id + 1
 
@@ -394,6 +395,7 @@ def propose_range(group, id_ranges, delta, basename, counter):
         # if this fails we print the warning
         print(f"Warning! Proposed base RIDs {proposed_base_rid} for new range start id {newrange.first_id} and \
             end id {newrange.last_id} both failed, please adjust manually")
+    
     
     result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False)
     if (result):
@@ -582,7 +584,7 @@ def main():
     parser.add_argument('--minrange', type=int, default=10, metavar=10, \
                         help="Minimal considered range size for outofrange IDs. All ranges lower than this number will be discarded and IDs will be listed to be moved. Has to be > 1")
     parser.add_argument('--allowunder1000', action="store_true",\
-                        help="Allow proposition of idranges below 1000. Be careful to not overlap IPA users/groups with existing system-local ones!")
+                        help="Allow idranges to start below 1000. Be careful to not overlap IPA users/groups with existing system-local ones!")
     
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -651,8 +653,9 @@ def main():
         # If creating range under 1000 is not allowed, we should remove and note users under 1000
         if not args.allowunder1000:
             under1000, ids_outofrange = separate_under1000(ids_outofrange)
+            # if the IDs under 1000 were found, we list them and exclude from range proposition
             if len(under1000) > 0:
-                print("\nFollowing identities have IDs lowe 1000, which is not recommeneded (if you definitely need ranges proposed for those, use --allowunder1000):\n")
+                print("\nFollowing identities have IDs lower 1000, which is not recommeneded (if you definitely need ranges proposed for those, use --allowunder1000):\n")
                 for identity in under1000:
                     print(identity)
         
