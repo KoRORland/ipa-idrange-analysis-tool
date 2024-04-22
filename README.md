@@ -29,16 +29,16 @@ ldapsearch -xLLL -D "cn=Directory Manager" -W -b "cn=ranges,cn=etc,$SUFFIX" "(ob
 ```
 and then provide it to the tool as an argument:
 ```
-python3 idrange-analyse.py --ranges idranges.txt
+python3 idrange-analyze.py --ranges idranges.txt
 ```
 or straightaway via `stdin`:
 ```
-ipa idrange-find --all --raw | python3 idrange-analyse.py
+ipa idrange-find --all --raw | python3 idrange-analyze.py
 ```
 ### Range proposal for users and groups that are out of the ranges
 After first basic run, the tool will provide `ldapsearch`es to determine users and groups outside of existing IPA ranges. You can provide resulting `outofranges.ldif` as an argument to get advice on which ranges to create:
 ```
-python3 idrange-analyse.py --ranges idranges --outofrange outofranges.ldif
+python3 idrange-analyze.py --ranges idranges --outofrange outofranges.ldif
 ```
 ### Advanced attributes
 
@@ -86,19 +86,21 @@ As a finale of the run tool creates a second table on how the ranges will look l
 
 ### RID base selection
 
-Default IPA local IDrange has RID bases of `base_rid = 1000` and `secondary_base_rid = 100000000`. The tool will try to propose the RID bases in same logic:
+Default IPA local IDrange has RID bases of `base_rid = 1000` and `secondary_base_rid = 100000000`.
+
+The tool will try to propose the RID bases in same logic:
 ```
 base_rid =  last base_rid + last range size + offset
 secondary_base_rid = last secondary_base_rid + last range size + offset
 ```
-Offset is used to offer the ability to extend already existing ranges in the future, by the number of IDS no bigger than the offset. It is a tunable parameter (`--ridoffset INT`).
-
-If this fails for any reason, the tool will fall back to this logic:
+If this fails for any reason, the tool will fall back to finding biggest RID number occupied and setting it's base after that number:
 ```
 base_rid = biggest RID of any kind + offset
 secondary_base_rid =  biggest RID of any kind, including already proposed base_rid, + offset
 ```
 If both logics failed, it is likely due to constraints violation - either we are going over 2^31, which is reserved for SubID RIDs, or we have some unforeseen overlaps. In this case, the script will put out the bases it tried and failed, and will continue without proposing a valid bases.
+
+The offset here is used to offer the ability to extend already existing ranges in the future, by the number of IDs no bigger than the offset. It is a tunable parameter (`--ridoffset INT`). Once the RID base is chosen, and some of the IDs get their RIDs, you can't really change RID bases anymore, so choose this parameter with caution.
 
 ### IDranges propositions
 
@@ -128,8 +130,8 @@ Rounding can be turned off by using `--norounding` attribute.
 ## Sample outputs
 Help output:
 ```
-$ python3 idrange-analyse.py --help
-usage: idrange-analyse.py [-h] [--ranges idranges] [--ridoffset 100000]
+$ python3 idrange-analyze.py --help
+usage: idrange-analyze.py [-h] [--ranges idranges] [--ridoffset 100000]
                           [--outofrange outofranges.ldif] [--rangegap 200000]
                           [--minrange 10] [--allowunder1000] [--norounding]
 
@@ -157,7 +159,7 @@ optional arguments:
 ```
 Output with test ranges:
 ```
-$ python3 idrange-analyse.py --ranges examples/ranges.txt
+$ python3 idrange-analyze.py --ranges examples/ranges.txt
 
 --------------------------------------------------------------------------------
 Range table
@@ -241,7 +243,7 @@ End result with proposed changes
 ```
 After proposed changes, and with outofranges.ldif provided by proposed searches:
 ```
-$ python3 idrange-analyse.py --ranges examples/ranges_changed.txt --outofrange examples/outofranges.ldif
+$ python3 idrange-analyze.py --ranges examples/ranges_changed.txt --outofrange examples/outofranges.ldif
 
 --------------------------------------------------------------------------------
 Range table
