@@ -1,0 +1,7 @@
+
+dn: uid=user10001,cn=users,cn=accounts,dc=example,dc=domain,dc=local
+uidNumber: 10001
+
+dn: cn=outliergroup,cn=groups,cn=accounts,dc=example,dc=domain,dc=local
+gidNumber: 101
+
