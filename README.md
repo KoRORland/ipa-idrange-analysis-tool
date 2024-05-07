@@ -38,7 +38,7 @@ ipa idrange-find --all --raw | python3 idrange-analyze.py
 ### Range proposal for users and groups that are out of the ranges
 After first basic run, the tool will provide `ldapsearch`es to determine users and groups outside of existing IPA ranges. You can provide resulting `outofranges.ldif` as an argument to get advice on which ranges to create:
 ```
-python3 idrange-analyze.py --ranges idranges --outofrange outofranges.ldif
+python3 idrange-analyze.py --ranges idranges.txt --outofrange outofranges.ldif
 ```
 ### Advanced attributes
 
