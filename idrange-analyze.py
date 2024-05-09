@@ -43,9 +43,9 @@ class IDentity:
 
     def __repr__(self):
         if self.user:
-            return f"user(username='{self.name}', uid='{self.number}', dn='{self.dn}')"
+            return f"user(username='{self.name}', uid={self.number}, {self.dn})"
         else:
-            return f"group(groupname='{self.name}', gid='{self.number}', dn='{self.dn}')"
+            return f"group(groupname='{self.name}', gid={self.number}, {self.dn})"
 
 #endregion
 """
@@ -171,19 +171,25 @@ def propose_rid_ranges(id_ranges: list[IDRange], delta: int) -> None:
 
         # Genertate an LDAP command if we changed something successfully
         if proposed_base_rid > 0 or proposed_secondary_base_rid > 0:
-            print(f"\n{current_range.name}: proposed values: Base RID = {current_range.base_rid}, Secondary Base RID = {current_range.secondary_base_rid}.")
-            print("\nLDAP command to apply would look like: ")
-            print(f"~~~\
+            print(create_ridbase_command(current_range))
+            
+# Function to create ldapmodify command for RID bases
+def create_ridbase_command(idrange: IDRange) -> str:
+    command = f"\n{idrange.name}: proposed values: Base RID = {idrange.base_rid}, Secondary Base RID = {idrange.secondary_base_rid}.\n"
+    command += "\nLDAP command to apply would look like: "
+    command += f"\n~~~\
 \n# ldapmodify -D \"cn=Directory Manager\" -W -x << EOF\
-\n{current_range.dn}\
+\n{idrange.dn}\
 \nchangetype: modify\
 \nadd: ipabaserid\
-\nipabaserid: {current_range.base_rid}\
+\nipabaserid: {idrange.base_rid}\
 \n-\
 \nadd: ipasecondarybaserid\
-\nipasecondarybaserid: {current_range.secondary_base_rid}\
+\nipasecondarybaserid: {idrange.secondary_base_rid}\
 \nEOF\
-\n~~~")
+\n~~~"
+    return command
+
             
 # Function to propose primary base RID
 def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: int, primary: bool =True) -> tuple[bool,str]:
@@ -470,7 +476,7 @@ def parse_idrange_input(input_data:str) -> list[IDRange]:
 
 # Function to parse out of range input data and create IDentities instances
 def parse_outofrange_input(input_data: str) -> list[IDentity]:
-    identities = []
+    identities : list[IDentity] = []
     current_entity = None
 
     for line in input_data.split('\n'):
