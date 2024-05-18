@@ -345,16 +345,23 @@ def round_idrange(start: int, end: int) -> tuple[int,int]:
     return rounded_start, rounded_end
 
 # Function to get a range name for proposal
-def get_rangename_base(id_ranges: list[IDRange]) -> str:
-    proposed_name = ''    
+def get_rangename_base(id_ranges: list[IDRange], counter: int = 1) -> tuple[str,int]:
+    base_name = ''
     # we want to use default range name as a base for new ranges
     for range in id_ranges:
         if range.base_rid == 1000:
-            proposed_name = range.name
+            base_name = range.name
+    
     # if we didn't find it, propose generic name
-    if proposed_name == '': proposed_name = 'Propoposed_range_name'
+    if base_name == '': base_name = 'Propoposed_range_name'
 
-    return proposed_name
+    # try to find already proposed names with a 3-digit number extension, if needed, update the counter
+    full_name = f"{base_name}_{counter:03}"
+    while any(id_range.name == full_name for id_range in id_ranges):
+        counter += 1
+        full_name = f"{base_name}_{counter:03}"
+
+    return base_name, counter
 
 # Function to produce a command to create a range
 def create_range_command(idrange: IDRange) -> str:
@@ -394,7 +401,7 @@ def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, ba
         # if we still failed, abandon idea
         if not newrange_overlap_check(id_ranges,newrange):
             print("ERROR! Failed to create idrange for current group, it overlaps with existing range!\
-                  \nRun the tool without --outofrange to get correct ldapsearches for IDs out of ranges!")
+\nRun the tool without --outofrange to get correct ldapsearches for IDs out of ranges!")
             return None
     
     # creating RID bases
@@ -688,11 +695,11 @@ def main():
 
         if len(cleangroups) > 0:
             # Get IDranges base name
-            basename = get_rangename_base(id_ranges)
+            basename, counter = get_rangename_base(id_ranges)
 
             # Create propositions for new ideranges
             for i in range(len(cleangroups)):
-                newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+1, args.norounding)
+                newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+counter, args.norounding)
                 # If range creation didn't fail, add it to the collection
                 if not newrange == None:
                     id_ranges.append(newrange)
