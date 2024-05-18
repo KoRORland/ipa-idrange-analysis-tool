@@ -346,22 +346,22 @@ def round_idrange(start: int, end: int) -> tuple[int,int]:
 
 # Function to get a range name for proposal
 def get_rangename_base(id_ranges: list[IDRange], counter: int = 1) -> tuple[str,int]:
-    proposed_name = ''
+    base_name = ''
     # we want to use default range name as a base for new ranges
     for range in id_ranges:
         if range.base_rid == 1000:
-            proposed_name = range.name
+            base_name = range.name
     
     # if we didn't find it, propose generic name
-    if proposed_name == '': proposed_name = 'Propoposed_range_name'
+    if base_name == '': base_name = 'Propoposed_range_name'
 
     # try to find already proposed names with a 3-digit number extension, if needed, update the counter
-    full_name = f"{proposed_name}_{counter:03}"
+    full_name = f"{base_name}_{counter:03}"
     while any(id_range.name == full_name for id_range in id_ranges):
         counter += 1
-        full_name = f"{proposed_name}_{counter:03}"
+        full_name = f"{base_name}_{counter:03}"
 
-    return proposed_name, counter
+    return base_name, counter
 
 # Function to produce a command to create a range
 def create_range_command(idrange: IDRange) -> str:
