@@ -355,13 +355,13 @@ def get_rangename_base(id_ranges: list[IDRange], counter: int = 1) -> tuple[str,
     # if we didn't find it, propose generic name
     if proposed_name == '': proposed_name = 'Propoposed_range_name'
 
-    # append a 3-digit number to the end of the range name
-    base_name = f"{proposed_name}_{counter:03d}"
-    while any(id_range.name == base_name for id_range in id_ranges):
+    # try to find already proposed names with a 3-digit number extension, if needed, update the counter
+    full_name = f"{proposed_name}_{counter:03}"
+    while any(id_range.name == full_name for id_range in id_ranges):
         counter += 1
-        base_name = f"{proposed_name}_{counter:03d}"
+        full_name = f"{proposed_name}_{counter:03}"
 
-    return base_name, counter
+    return proposed_name, counter
 
 # Function to produce a command to create a range
 def create_range_command(idrange: IDRange) -> str:
@@ -401,7 +401,7 @@ def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, ba
         # if we still failed, abandon idea
         if not newrange_overlap_check(id_ranges,newrange):
             print("ERROR! Failed to create idrange for current group, it overlaps with existing range!\
-                  \nRun the tool without --outofrange to get correct ldapsearches for IDs out of ranges!")
+\nRun the tool without --outofrange to get correct ldapsearches for IDs out of ranges!")
             return None
     
     # creating RID bases
