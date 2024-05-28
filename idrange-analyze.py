@@ -38,7 +38,7 @@ class IDentity:
     def __init__(self):
         self.dn     : str = None
         self.name   : str = None
-        self.user   : str = None
+        self.user   : bool = None
         self.number : int = None
 
     def __repr__(self):
@@ -92,13 +92,12 @@ def detect_range_overlaps(id_ranges: list[IDRange]) -> None:
     temp_name = "default system local range (IDs lower 1000 are reserved for system and service users and groups)"
     err = False
 
-    for i in range(len(id_ranges)):
-        current_range = id_ranges[i]
-        if current_range.first_id <= temp_id:
-            print("\nWARNING! Range {} overlaps with {}!".format(current_range.name, temp_name))
+    for range in id_ranges:
+        if range.first_id <= temp_id:
+            print("\nWARNING! Range {} overlaps with {}!".format(range.name, temp_name))
             err = True
-        temp_id = current_range.last_id
-        temp_name = current_range.name
+        temp_id = range.last_id
+        temp_name = range.name
     if (not err):
         print("\nAll ranges seem to be in order.")
 
@@ -127,9 +126,9 @@ def newrange_overlap_check(id_ranges: list[IDRange], newrange: IDRange) -> bool:
 def get_ipa_local_ranges(id_ranges: list[IDRange]) -> list[IDRange]:
     ipa_local_ranges = []
 
-    for i in range(len(id_ranges)):
-        if id_ranges[i].type == "ipa-local":
-            ipa_local_ranges.append(id_ranges[i])
+    for range in id_ranges:
+        if range.type == "ipa-local":
+            ipa_local_ranges.append(range)
 
     return ipa_local_ranges
 
@@ -143,35 +142,34 @@ def propose_rid_ranges(id_ranges: list[IDRange], delta: int) -> None:
     # delta repersents for far we start new base off existing range, used in order to allow for future expansion of existing ranges up to [delta] IDs
     ipa_local_ranges = get_ipa_local_ranges(id_ranges)
 
-    for i in range(len(ipa_local_ranges)):
-        current_range = ipa_local_ranges[i]
+    for range in ipa_local_ranges:
         proposed_base_rid = 0
         proposed_secondary_base_rid = 0
 
         # Calculate proposed base RID and secondary base RID
-        if current_range.base_rid is None:
-            result, proposed_base_rid = propose_rid_base(current_range, ipa_local_ranges, delta, True)
+        if range.base_rid is None:
+            result, proposed_base_rid = propose_rid_base(range, ipa_local_ranges, delta, True)
             if (result):
-                current_range.base_rid = proposed_base_rid
-                current_range.last_base_rid = proposed_base_rid + current_range.size
+                range.base_rid = proposed_base_rid
+                range.last_base_rid = proposed_base_rid + range.size
             else:
                 # if this fails too, we print the warning and abandon the idea
-                print(f"Warning: Proposed base RIDs {proposed_base_rid} for {current_range.name} both failed, please adjust manually")
+                print(f"Warning: Proposed base RIDs {proposed_base_rid} for {range.name} both failed, please adjust manually")
                 continue
 
-        if current_range.secondary_base_rid is None:
-            result, proposed_secondary_base_rid = propose_rid_base(current_range, ipa_local_ranges, delta, False)
+        if range.secondary_base_rid is None:
+            result, proposed_secondary_base_rid = propose_rid_base(range, ipa_local_ranges, delta, False)
             if (result):
-                current_range.secondary_base_rid = proposed_secondary_base_rid
-                current_range.last_secondary_rid = proposed_secondary_base_rid + current_range.size
+                range.secondary_base_rid = proposed_secondary_base_rid
+                range.last_secondary_rid = proposed_secondary_base_rid + range.size
             else:
                 # if this fails too, we print the warning and abandon the idea
-                print(f"Warning: Proposed secondary base RIDs {proposed_secondary_base_rid} for {current_range.name} failed, please adjust manually")
+                print(f"Warning: Proposed secondary base RIDs {proposed_secondary_base_rid} for {range.name} failed, please adjust manually")
                 continue
 
         # Genertate an LDAP command if we changed something successfully
         if proposed_base_rid > 0 or proposed_secondary_base_rid > 0:
-            print(create_ridbase_command(current_range))
+            print(create_ridbase_command(range))
             
 # Function to create ldapmodify command for RID bases
 def create_ridbase_command(idrange: IDRange) -> str:
@@ -210,19 +208,18 @@ def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: i
 # Funtion to get maximum used primary or secondary RID
 def max_rid(id_ranges: list[IDRange], primary: bool =True) -> int:
     max_rid = 0
-    for i in range(len(id_ranges)):
-        current_range = id_ranges[i]
+    for range in id_ranges:
 
         # looking only for primary RIDs
         if primary:
-            if not current_range.last_base_rid is None:
-                if current_range.last_base_rid > max_rid:
-                    max_rid = current_range.last_base_rid
+            if not range.last_base_rid is None:
+                if range.last_base_rid > max_rid:
+                    max_rid = range.last_base_rid
         # looking only for secondary RIDs
         else:
-            if not current_range.last_secondary_rid is None:
-                if current_range.last_secondary_rid > max_rid:
-                    max_rid = current_range.last_secondary_rid
+            if not range.last_secondary_rid is None:
+                if range.last_secondary_rid > max_rid:
+                    max_rid = range.last_secondary_rid
             
     return max_rid
 
@@ -237,33 +234,31 @@ def check_rid_base(id_ranges: list[IDRange], base: int, size: int, debug: bool=F
         return False
 
     # Checking RID range overlaps
-    for i in range(len(id_ranges)):
-        current_range = id_ranges[i]
-
+    for range in id_ranges:
         # we are interested only in ipa-local ranges
-        if current_range.type != "ipa-local":
+        if range.type != "ipa-local":
             continue
         
         # if there is no base rid set, there is no secondary base rid set, nothing to overlap with
-        if current_range.base_rid is None:
+        if range.base_rid is None:
             continue
 
         # checking for an overlap
-        if not range_overlap_check(base, end, current_range.base_rid, current_range.last_base_rid):
+        if not range_overlap_check(base, end, range.base_rid, range.last_base_rid):
             if (debug):
-                print(f"RID check failure: proposed pri {base} + {size}, intersects with {current_range.base_rid}-\
-                    {current_range.last_base_rid} from {current_range.name}")
+                print(f"RID check failure: proposed pri {base} + {size}, intersects with {range.base_rid}-\
+                    {range.last_base_rid} from {range.name}")
             return False
         
         # if there is no secondary base rid set, nothing to overlap with
-        if current_range.secondary_base_rid is None:
+        if range.secondary_base_rid is None:
             continue
 
         # if either start of end of the range fails iside existing range, or existing range is inside proposed one, we have an overlap
-        if not range_overlap_check(base, end, current_range.secondary_base_rid, current_range.last_secondary_rid):
+        if not range_overlap_check(base, end, range.secondary_base_rid, range.last_secondary_rid):
             if (debug):
-                print(f"RID check failure: proposed sec {base} + {size}, intersects with {current_range.secondary_base_rid}-\
-                    {current_range.last_secondary_rid} from {current_range.name}")
+                print(f"RID check failure: proposed sec {base} + {size}, intersects with {range.secondary_base_rid}-\
+                    {range.last_secondary_rid} from {range.name}")
             return False
 
     return True
@@ -272,8 +267,8 @@ def check_rid_base(id_ranges: list[IDRange], base: int, size: int, debug: bool=F
 def check_rid_bases(id_ranges: list[IDRange]) -> bool:
     ipa_local_ranges = get_ipa_local_ranges(id_ranges)
 
-    for i in range(len(ipa_local_ranges)):
-        if ipa_local_ranges[i].base_rid is None or ipa_local_ranges[i].secondary_base_rid is None:
+    for range in ipa_local_ranges:
+        if range.base_rid is None or range.secondary_base_rid is None:
             return True
         
     return False
