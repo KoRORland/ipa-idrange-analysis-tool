@@ -100,7 +100,7 @@ class IPAIDRangeFix(AdminTool):
         try:
             api.Backend.ldap2.connect()
             
-            # Rading range data
+            # Reading range data
             id_ranges:list[IDRange] = read_ranges(self.suffix, api)
             
             if len(id_ranges) == 0:
@@ -189,7 +189,7 @@ class IPAIDRangeFix(AdminTool):
                     return 0
                 logger.info("Proceeding.")
 
-            #TODO Fix ID ranges
+            # Applying changes
             for id_range in propositions_rid:
                 apply_ridbases(id_range, api)
 
