@@ -403,7 +403,7 @@ def create_range(id_range: IDRange, api) -> None:
 
         entry = api.Backend.ldap2.make_entry(
             DN(id_range.dn),
-            objectclass = ['ipaIDRange','ipadomainidrange'],
+            objectclass = ['ipaIDRange','ipaDomainIDRange'],
             ipaidrangesize=[str(id_range.size)],
             ipabaseid=[str(id_range.first_id)],
             ipabaserid=[str(id_range.base_rid)],
