@@ -188,7 +188,7 @@ for confirmation",
             self.id_ranges = read_ranges(self.suffix)
 
             # Evaluating existing ranges, if something is off, exit
-            if self.evaluate_ranges() > 0:
+            if self.evaluate_ranges() != 0:
                 return 1
 
             # reading out of range IDs
@@ -240,7 +240,7 @@ for confirmation",
     def evaluate_ranges(self) -> int:
         """Function to evaluate existing ID ranges"""
         if len(self.id_ranges) == 0:
-            logger.info("No ID ranges found!")
+            logger.error("No ID ranges found!")
             return 1
 
         draw_ascii_table(self.id_ranges)
@@ -348,8 +348,7 @@ parameters --minrange or --rangegap!"
 
     def print_intentions(self) -> None:
         """Function to print out the summary of the proposed changes"""
-
-        print("\n\n")
+        print()
         logger.info("Summary:")
 
         if len(self.outliers) > 0:
