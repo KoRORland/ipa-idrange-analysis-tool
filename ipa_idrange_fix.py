@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 import logging
 import ldap
@@ -396,9 +395,9 @@ secondary base RID: %s",
             logger.info("No new ranges proposed.")
 
 # Working with output
-
-
 # region
+
+
 def draw_ascii_table(id_ranges: list[IDRange]) -> None:
     """Function to draw a table with ID ranges in ASCII"""
     # Calculate the maximum width required for each column using column names
@@ -448,13 +447,11 @@ def draw_ascii_table(id_ranges: list[IDRange]) -> None:
                 row += " " * (width + 1) + "| "
         print(row)
     print(horizontal_line)
-
 # endregion
-
 # Reading from LDAP
-
-
 # region
+
+
 def read_ranges(suffix) -> list[IDRange]:
     """Function to read ID ranges from LDAP"""
     try:
@@ -577,14 +574,11 @@ def get_outofrange_filter(
     ldap_filter += "))"
 
     return ldap_filter
-
-
 # endregion
-
 # Writing to LDAP
-
-
 # region
+
+
 def apply_ridbases(id_range: IDRange) -> None:
     """Funtion to apply RID bases to the range in LDAP"""
     try:
@@ -634,14 +628,11 @@ def create_range(id_range: IDRange) -> None:
     except Exception as e:
         logger.error("Exception while creating range %s: %s", id_range.name, e)
         raise RuntimeError("Failed to create range.\n") from e
-
-
 # endregion
-
 # Working with ranges
-
-
 # region
+
+
 def get_ipa_local_ranges(id_ranges: list[IDRange]) -> list[IDRange]:
     """Function to get only ipa-local ranges from the list of ranges"""
     ipa_local_ranges = []
@@ -690,14 +681,11 @@ def ranges_overlap_check(id_ranges: list[IDRange]) -> bool:
                 )
                 return False
     return True
-
-
 # endregion
-
 # Working with RID bases
-
-
 # region
+
+
 def propose_rid_ranges(
     id_ranges: list[IDRange], delta: int, propositions: list[IDRange]
 ) -> None:
@@ -762,7 +750,6 @@ please adjust manually",
             propositions.append(id_range)
 
 
-# Function to propose base RID
 def propose_rid_base(
     idrange: IDRange,
     ipa_local_ranges: list[IDRange],
@@ -873,13 +860,11 @@ def get_ranges_no_base(id_ranges: list[IDRange]) -> list[IDRange]:
             ranges_no_base.append(id_range)
 
     return ranges_no_base
-
-
 # endregion
 # Working with IDentities out of range
-
-
 # region
+
+
 def group_identities_by_threshold(
     identities: list[IDentity], threshold: int
 ) -> list[list[IDentity]]:
@@ -1063,6 +1048,4 @@ end id %s both failed, please adjust manually",
 
     logger.debug("Proposed range: %s", newrange)
     return newrange
-
-
 # endregion
