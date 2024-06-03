@@ -31,20 +31,22 @@ logger = logging.getLogger(__name__)
 class IDRange:
     """Class for ID range entity"""
 
-    def __init__(self):
-        self.name: str = None
-        self.size: int = None
-        self.first_id: int = None
-        self.base_rid: int = None
-        self.secondary_base_rid: int = None
-        self.suffix: str = None
-        self.type: str = None
+    def __init__(self, **kwargs):
         self.last_id: int = None
         self.last_base_rid: int = None
         self.last_secondary_rid: int = None
-        self.dn: str = None
+        self.name: str = kwargs.get('name')
+        self.size: int = kwargs.get('size')
+        self.first_id: int = kwargs.get('first_id')
+        self.base_rid: int = kwargs.get('base_rid')
+        self.secondary_base_rid: int = kwargs.get('secondary_base_rid')
+        self.type: str = kwargs.get('type')
+        self.suffix: str = kwargs.get('suffix')
+        self.dn: str = kwargs.get('dn')
+        if self.first_id is not None and self.size is not None:
+            self.count()
 
-    def count(self):
+    def count(self) -> None:
         """Function to calculate last IDs for the range"""
         self.last_id = self.first_id + self.size - 1
         if self.type == "ipa-local":
@@ -60,7 +62,7 @@ class IDRange:
             )
 
     def __repr__(self):
-        return f"IDRange(name='{self.name}',\
+        return f"IDRange(name='{self.name}', \
 type={self.type}, \
 size={self.size}, \
 first_id={self.first_id}, \
@@ -74,11 +76,11 @@ secondary_base_rid={self.secondary_base_rid})"
 class IDentity:
     """Class for ID entity"""
 
-    def __init__(self):
-        self.dn: str = None
-        self.name: str = None
-        self.user: bool = None
-        self.number: int = None
+    def __init__(self, **kwargs):
+        self.dn: str = kwargs.get('dn')
+        self.name: str = kwargs.get('name')
+        self.user: str = kwargs.get('user')
+        self.number: int = kwargs.get('number')
 
     def __repr__(self):
         if self.user:
@@ -381,15 +383,7 @@ parameters --minrange or --rangegap!"
         if len(self.propositions_new) > 0:
             logger.info("Proposed new ranges:")
             for id_range in self.propositions_new:
-                logger.info(
-                    "Range %s - start ID: %s, end ID: %s, base RID: %s, \
-secondary base RID: %s",
-                    id_range.name,
-                    id_range.first_id,
-                    id_range.last_id,
-                    id_range.base_rid,
-                    id_range.secondary_base_rid,
-                )
+                logger.info("%s", id_range)
         else:
             logger.info("No new ranges proposed.")
 
@@ -647,11 +641,13 @@ def range_overlap_check(
     range1_start: int, range1_end: int, range2_start: int, range2_end: int
 ) -> bool:
     """Function to check if two ranges overlap"""
-    return range1_start < range2_end or range1_end > range2_start
+    # False when overlapping
+    return not (range1_start <= range2_end and range2_start <= range1_end)
 
 
 def range_overlap_check_idrange(range1: IDRange, range2: IDRange) -> bool:
     """Function to check if two ranges overlap"""
+    # False when overlapping
     return range_overlap_check(
         range1.first_id, range1.last_id, range2.first_id, range2.last_id)
 
