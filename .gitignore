@@ -1,3 +1,2 @@
 examples/outofranges2.ldif
-__pycache__/ipa_idrange_fix.cpython-312.pyc
-__pycache__/test_ipa_idrange_fix.cpython-312.pyc
+__pycache__/*.pyc
