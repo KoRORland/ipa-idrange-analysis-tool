@@ -1,5 +1,7 @@
 '''UNIT TESTS FOR ipa_idrange_fix.py'''
 import unittest
+import subprocess
+import re
 
 from ipa_idrange_fix import IDRange, IDentity, IPAIDRangeFix
 
@@ -242,6 +244,56 @@ class TestIPAIDRangeFix(unittest.TestCase):
     def test_propose_range(self):
         """Test the propose_range function"""
         pass
+
+    def test_noissues(self):
+        """Test the noissues function"""
+        result = subprocess.run(
+            'ipa-idrange-fix --unattended',
+            text=True,
+            capture_output=True,
+            check=True
+        )
+        self.assertEqual(result.returncode, 0, msg="Tool did not exit cleanly")
+        expected_text="No changes proposed, nothing to do."
+        self.assertIn(expected_text, result.stderr)
+
+    def test_users_outofrange(self):
+        """Test ipa-idrange-fix command with users out of range."""
+
+        for i in range(1, 20):
+            subprocess.run(
+                [
+                    "ipa",
+                    "user-add",
+                    f"testuser{i}",
+                    "--first", "Test",
+                    "--last", f"User {i}",
+                    "--uid", str(100000 + i * 10),
+                ],
+                text=True,
+                capture_output=True,
+                check=True
+            )
+
+        result = subprocess.run(["ipa-idrange-fix", "--unattended"], capture_output=True, check=True)
+
+        print(f"RESULT STDERR BEGIN\n{result.stderr}\nRESULT STDERR END")
+        print(f"RESULT STDOUT BEGIN\n{result.stdout}\nRESULT STDOUT END")
+        expected_text = r"Range [\w\.]+_id_range_\d{3} created successfully"
+        match = re.search(expected_text, result.stderr.decode('utf-8'))
+        assert match is not None
+        print(f"RESULT match0 BEGIN\n{match.group(0)}\nRESULT match0 END")
+        print(f"RESULT range BEGIN\n{match.group(0).split(" ")[1]}\nRESULT range END")
+        # Remove users out of range and created IDrange
+        for i in range(1, 20):
+            subprocess.run([
+                "ipa",
+                "user-del",
+                f"testuser{i}"
+            ], check=True)
+        print(match.group)
+        if match is not None:
+            subprocess.run(["ipa", "idrange-del", match.group(0).split(" ")[1]])
 
     if __name__ == "__main__":
         unittest.main()
