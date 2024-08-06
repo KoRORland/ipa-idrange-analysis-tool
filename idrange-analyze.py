@@ -158,7 +158,7 @@ def propose_rid_ranges(id_ranges: list[IDRange], delta: int) -> None:
                 continue
 
         if range.secondary_base_rid is None:
-            result, proposed_secondary_base_rid = propose_rid_base(range, ipa_local_ranges, delta, False)
+            result, proposed_secondary_base_rid = propose_rid_base(range, ipa_local_ranges, delta, False, proposed_base_rid)
             if (result):
                 range.secondary_base_rid = proposed_secondary_base_rid
                 range.last_secondary_rid = proposed_secondary_base_rid + range.size
@@ -190,15 +190,19 @@ def create_ridbase_command(idrange: IDRange) -> str:
 
             
 # Function to propose primary base RID
-def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: int, primary: bool =True) -> tuple[bool,str]:
+def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: int, primary: bool =True, previous_base_rid: int = -1) -> tuple[bool,str]:
     # we are getting the biggest base RID + size + delta and try if it's a viable option, check same kind first
     proposed_base_rid = max_rid(ipa_local_ranges, primary) + delta
+    if proposed_base_rid == previous_base_rid:
+        proposed_base_rid += idrange.size + delta
     if check_rid_base(ipa_local_ranges, proposed_base_rid, idrange.size):
         return True, proposed_base_rid
     else:
         # if we fail, we try the same with biggest of a different kind
         proposed_base_rid_orig = proposed_base_rid
         proposed_base_rid = max_rid(ipa_local_ranges, not primary) + delta
+        if proposed_base_rid == previous_base_rid:
+            proposed_base_rid += idrange.size + delta
         if check_rid_base(ipa_local_ranges, proposed_base_rid, idrange.size):
             return True, proposed_base_rid
         else:
@@ -328,13 +332,17 @@ def separate_ranges_and_outliers(groups: list[list[IDentity]], minrangesize = in
     return outliers, cleangroups
 
 # Function to round up range margins
-def round_idrange(start: int, end: int) -> tuple[int,int]:
+def round_idrange(start: int, end: int, under1000: bool) -> tuple[int,int]:
     # calculating power of the size
     sizepower = len(str(end - start + 1))
     # multiplier for the nearest rounded number
     multiplier = 10 ** (sizepower - 1)
     # getting rounded range margins
     rounded_start = (start // multiplier) * multiplier
+    if not under1000:
+        rounded_start = max(rounded_start, 1000)
+    else:
+        rounded_start = max(rounded_start, 1)
     rounded_end = ((end + multiplier) // multiplier) * multiplier - 1
 
     return rounded_start, rounded_end
@@ -368,7 +376,7 @@ def create_range_command(idrange: IDRange) -> str:
 --rid-base={idrange.base_rid} --secondary-rid-base={idrange.secondary_base_rid}" 
 
 # Function to try and create a new range from group
-def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, basename: str, counter: int, norounding: bool) -> IDRange:
+def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, basename: str, counter: int, norounding: bool, under1000: bool) -> IDRange:
     startid = group[0].number
     endid = group[-1].number
 
@@ -385,7 +393,7 @@ def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, ba
         newrange.size = newrange.last_id - newrange.first_id + 1
     else:
         # first trying to round up ranges to look pretty
-        newrange.first_id, newrange.last_id = round_idrange(startid, endid)
+        newrange.first_id, newrange.last_id = round_idrange(startid, endid, under1000)
         newrange.size = newrange.last_id - newrange.first_id + 1
 
     # if this creates an overlap, try without rounding
@@ -412,7 +420,7 @@ def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, ba
 end id {newrange.last_id} both failed, please adjust manually")
     
 
-    result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False)
+    result, proposed_secondary_base_rid = propose_rid_base(newrange, ipa_local_ranges, delta, False, proposed_base_rid)
     if (result):
         newrange.secondary_base_rid = proposed_secondary_base_rid
         newrange.last_secondary_rid = proposed_secondary_base_rid + newrange.size
@@ -694,7 +702,7 @@ def main():
 
             # Create propositions for new ideranges
             for i in range(len(cleangroups)):
-                newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+counter, args.norounding)
+                newrange = propose_range(cleangroups[i], id_ranges, args.ridoffset, basename, i+counter, args.norounding, args.allowunder1000)
                 # If range creation didn't fail, add it to the collection
                 if not newrange == None:
                     id_ranges.append(newrange)
