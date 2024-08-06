@@ -76,7 +76,7 @@ If no identities out of ranges are provided:
 - We propose `ldapsearch`es that will reveal POSIX users and groups that are outside of currently present ranges;
 
 If identities out of ranges are provided:
-- We provide propositions on what ranges to create to cover most of the identities provided;
+- We provide proposals on what ranges to create to cover most of the identities provided;
 - We provide a list of 'outliers' - users and groups too far away and too small in number to get a separate idrange;
 - We provide a list of users and group with IDs under 1000, to be moved out of system-reserved range manually;
 
@@ -102,7 +102,7 @@ If both logics failed, it is likely due to constraints violation - either we are
 
 The offset here is used to offer the ability to extend already existing ranges in the future, by the number of IDs no bigger than the offset. It is a tunable parameter (`--ridoffset INT`). Once the RID base is chosen, and some of the IDs get their RIDs, you can't really change RID bases anymore, so choose this parameter with caution.
 
-### IDranges propositions
+### IDranges proposals
 
 Dissecting an unknown set of IDs into viable IDranges is not a trivial task. During design consideration for this feature, we faced following constraints:
 - IDranges have to be rather populated, we don't want huge gaps inside ranges to be empty;
