@@ -1,5 +1,6 @@
 import sys
 import argparse
+from typing import List, Tuple
 
 """
 Class definitions
@@ -54,7 +55,7 @@ Working with ranges
 #region
 
 # Function to generate LDAPseach commands
-def generate_ldapsearch_commands(id_ranges_all: list[IDRange], object_class: str, id: str, cn:str) -> str:
+def generate_ldapsearch_commands(id_ranges_all: List[IDRange], object_class: str, id: str, cn:str) -> str:
     
     # we need to look only for ipa-local ranges
     id_ranges = get_ipa_local_ranges(id_ranges_all)
@@ -87,7 +88,7 @@ def generate_ldapsearch_commands(id_ranges_all: list[IDRange], object_class: str
     return command
 
 # Function to detect ID range overlaps, expecting ranges sorted by first_id
-def detect_range_overlaps(id_ranges: list[IDRange]) -> None:
+def detect_range_overlaps(id_ranges: List[IDRange]) -> None:
     temp_id = 1000
     temp_name = "default system local range (IDs lower 1000 are reserved for system and service users and groups)"
     err = False
@@ -116,14 +117,14 @@ def range_overlap_check(range1start: int, range1end: int, range2start: int, rang
         return True
 
 # Function to check if proposed range overlaps with existing ones
-def newrange_overlap_check(id_ranges: list[IDRange], newrange: IDRange) -> bool:
+def newrange_overlap_check(id_ranges: List[IDRange], newrange: IDRange) -> bool:
     for idrange in id_ranges:
         if not range_overlap_check(idrange.first_id,idrange.last_id,newrange.first_id,newrange.last_id):
             return False
     return True
 
 # Function to get ipa-local ranges only
-def get_ipa_local_ranges(id_ranges: list[IDRange]) -> list[IDRange]:
+def get_ipa_local_ranges(id_ranges: List[IDRange]) -> List[IDRange]:
     ipa_local_ranges = []
 
     for range in id_ranges:
@@ -138,7 +139,7 @@ Working with RID bases
 """
 #region
 # Function to propose RID bases
-def propose_rid_ranges(id_ranges: list[IDRange], delta: int) -> None:
+def propose_rid_ranges(id_ranges: List[IDRange], delta: int) -> None:
     # delta repersents for far we start new base off existing range, used in order to allow for future expansion of existing ranges up to [delta] IDs
     ipa_local_ranges = get_ipa_local_ranges(id_ranges)
 
@@ -190,7 +191,7 @@ def create_ridbase_command(idrange: IDRange) -> str:
 
             
 # Function to propose primary base RID
-def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: int, primary: bool =True, previous_base_rid: int = -1) -> tuple[bool,str]:
+def propose_rid_base(idrange: IDRange, ipa_local_ranges: List[IDRange], delta: int, primary: bool =True, previous_base_rid: int = -1) -> Tuple[bool,str]:
     # we are getting the biggest base RID + size + delta and try if it's a viable option, check same kind first
     proposed_base_rid = max_rid(ipa_local_ranges, primary) + delta
     if proposed_base_rid == previous_base_rid:
@@ -210,7 +211,7 @@ def propose_rid_base(idrange: IDRange, ipa_local_ranges: list[IDRange], delta: i
             return False, f"{proposed_base_rid_orig} and {proposed_base_rid}"    
 
 # Funtion to get maximum used primary or secondary RID
-def max_rid(id_ranges: list[IDRange], primary: bool =True) -> int:
+def max_rid(id_ranges: List[IDRange], primary: bool =True) -> int:
     max_rid = 0
     for range in id_ranges:
 
@@ -228,7 +229,7 @@ def max_rid(id_ranges: list[IDRange], primary: bool =True) -> int:
     return max_rid
 
 # Function to check if proposed RID overlaps with any other RID 'ranges'
-def check_rid_base(id_ranges: list[IDRange], base: int, size: int, debug: bool=False) -> bool:
+def check_rid_base(id_ranges: List[IDRange], base: int, size: int, debug: bool=False) -> bool:
     end = base + size + 1
 
     # Checking sanity of RID range
@@ -268,7 +269,7 @@ def check_rid_base(id_ranges: list[IDRange], base: int, size: int, debug: bool=F
     return True
 
 # Function to check if there is any of the RID bases not set
-def check_rid_bases(id_ranges: list[IDRange]) -> bool:
+def check_rid_bases(id_ranges: List[IDRange]) -> bool:
     ipa_local_ranges = get_ipa_local_ranges(id_ranges)
 
     for range in ipa_local_ranges:
@@ -283,9 +284,9 @@ Working with IDentities out of range
 """
 # region
 # Function to get outofrange IDs into groups to create ranges
-def group_identities_by_threshold(identities: list[IDentity], threshold: int) -> list[list[IDentity]]:
-    groups : list[list[IDentity]]= []
-    currentgroup : list[IDentity] = []
+def group_identities_by_threshold(identities: List[IDentity], threshold: int) -> List[List[IDentity]]:
+    groups : List[List[IDentity]]= []
+    currentgroup : List[IDentity] = []
     if len(identities) == 0:
         return groups
 
@@ -305,7 +306,7 @@ def group_identities_by_threshold(identities: list[IDentity], threshold: int) ->
     return groups
 
 # Function to remove identities with numbers under 1000 (expects sorted list):
-def separate_under1000(identities: list[IDentity]) -> tuple[list[IDentity],list[IDentity]]:
+def separate_under1000(identities: List[IDentity]) -> Tuple[List[IDentity],List[IDentity]]:
     for i in range(len(identities)):
         if identities[i].number >=1000:
             if i==0:
@@ -317,7 +318,7 @@ def separate_under1000(identities: list[IDentity]) -> tuple[list[IDentity],list[
     return identities,[]
 
 # Function to get users from groups that are smaller then minimum range size
-def separate_ranges_and_outliers(groups: list[list[IDentity]], minrangesize = int) -> tuple[list[list[IDentity]],list[list[IDentity]]]:
+def separate_ranges_and_outliers(groups: List[List[IDentity]], minrangesize = int) -> Tuple[List[List[IDentity]],List[List[IDentity]]]:
     outliers = []
     cleangroups = []
     for group in groups:
@@ -332,7 +333,7 @@ def separate_ranges_and_outliers(groups: list[list[IDentity]], minrangesize = in
     return outliers, cleangroups
 
 # Function to round up range margins
-def round_idrange(start: int, end: int, under1000: bool) -> tuple[int,int]:
+def round_idrange(start: int, end: int, under1000: bool) -> Tuple[int,int]:
     # calculating power of the size
     sizepower = len(str(end - start + 1))
     # multiplier for the nearest rounded number
@@ -348,7 +349,7 @@ def round_idrange(start: int, end: int, under1000: bool) -> tuple[int,int]:
     return rounded_start, rounded_end
 
 # Function to get a range name for proposal
-def get_rangename_base(id_ranges: list[IDRange], counter: int = 1) -> tuple[str,int]:
+def get_rangename_base(id_ranges: List[IDRange], counter: int = 1) -> Tuple[str,int]:
     base_name = ''
     # we want to use default range name as a base for new ranges
     for range in id_ranges:
@@ -376,7 +377,7 @@ def create_range_command(idrange: IDRange) -> str:
 --rid-base={idrange.base_rid} --secondary-rid-base={idrange.secondary_base_rid}" 
 
 # Function to try and create a new range from group
-def propose_range(group:list[IDentity], id_ranges: list[IDRange], delta: int, basename: str, counter: int, norounding: bool, under1000: bool) -> IDRange:
+def propose_range(group:List[IDentity], id_ranges: List[IDRange], delta: int, basename: str, counter: int, norounding: bool, under1000: bool) -> IDRange:
     startid = group[0].number
     endid = group[-1].number
 
@@ -440,7 +441,7 @@ Working with input flows
 #region
 
 # Function to parse input data and create IDRange instances
-def parse_idrange_input(input_data:str) -> list[IDRange]:
+def parse_idrange_input(input_data:str) -> List[IDRange]:
     id_ranges = []
     current_range = None
 
@@ -485,8 +486,8 @@ def parse_idrange_input(input_data:str) -> list[IDRange]:
     return id_ranges
 
 # Function to parse out of range input data and create IDentities instances
-def parse_outofrange_input(input_data: str) -> list[IDentity]:
-    identities : list[IDentity] = []
+def parse_outofrange_input(input_data: str) -> List[IDentity]:
+    identities : List[IDentity] = []
     current_entity = None
 
     for line in input_data.split('\n'):
@@ -552,7 +553,7 @@ Working with output
 """
 #region
 # Function to draw a pretty table
-def draw_ascii_table(id_ranges: list[IDRange]) -> None:
+def draw_ascii_table(id_ranges: List[IDRange]) -> None:
     # Calculate the maximum width required for each column including column names
     max_widths = {column: max(len(str(column)), max(len(str(getattr(id_range, column))) if getattr(id_range, column) is not None else 0 for id_range in id_ranges)) for column in ["name", "type", "size", "first_id", "last_id", "base_rid", "last_base_rid", "secondary_base_rid", "last_secondary_rid"]}
 
