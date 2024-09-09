@@ -636,7 +636,7 @@ def main():
     # Parse the input data and create IDRange instances
     id_ranges = parse_idrange_input(range_data)
 
-    if len(id_ranges) <= 1:
+    if len(id_ranges) < 1:
         # No valid range data provided, show usage instructions
         print ("\nERROR: no valid ranges in input data!")
         parser.print_usage()
