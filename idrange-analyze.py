@@ -453,7 +453,7 @@ def parse_idrange_input(input_data:str) -> List[IDRange]:
         if not ':' in line:
             continue
 
-        if line.startswith("dn:"):
+        if line.startswith("dn:") or line.startswith("Range name:"):
             if current_range:
                 id_ranges.append(current_range)
             current_range = IDRange()
@@ -463,22 +463,28 @@ def parse_idrange_input(input_data:str) -> List[IDRange]:
             suffix_start = line.find("dc=")
             if suffix_start != -1:
                 current_range.suffix = line[suffix_start:]
+            else:
+                current_range.suffix = "$SUFFIX"
 
         # reading attributes
-        else:
-            key, value = line.split(": ", 1)
-            if key == "cn":
-                current_range.name = value
-            elif key.lower() == "ipabaseid":
-                current_range.first_id = int(value)
-            elif key.lower() == "ipaidrangesize":
-                current_range.size = int(value)
-            elif key.lower() == "ipabaserid":
-                current_range.base_rid = int(value)
-            elif key.lower() == "ipasecondarybaserid":
-                current_range.secondary_base_rid = int(value)
-            elif key.lower() == "iparangetype":
-                current_range.type = value
+        key, value = line.split(": ", 1)
+        if key == "cn" or key.lower() == "range name":
+            current_range.name = value
+        elif key.lower() == "ipabaseid" or key.lower() == "first posix id of the range":
+            current_range.first_id = int(value)
+        elif key.lower() == "ipaidrangesize" or key.lower() == "number of ids in the range":
+            current_range.size = int(value)
+        elif key.lower() == "ipabaserid" or key.lower() == "first rid of the corresponding rid range":
+            current_range.base_rid = int(value)
+        elif key.lower() == "ipasecondarybaserid" or key.lower() == "first rid of the secondary rid range":
+            current_range.secondary_base_rid = int(value)
+        elif key.lower() == "iparangetype":
+            current_range.type = value
+        elif key.lower() == "range type":
+            if value.lower() == "local domain range":
+                current_range.type = "ipa-local"
+            elif value.lower() == "active directory domain range":
+                current_range.type = "ipa-ad-trust"
 
     if current_range:
         id_ranges.append(current_range)

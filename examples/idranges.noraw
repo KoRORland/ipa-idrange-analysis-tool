@@ -1,0 +1,33 @@
+----------------
+4 ranges matched
+----------------
+  Range name: TRUSTED.AD1_id_range
+  First Posix ID of the range: 1365400000
+  Number of IDs in the range: 2000000
+  First RID of the corresponding RID range: 0
+  Domain SID of the trusted domain: S-1-5-21-1234456789-123456789-123456789
+  Range type: Active Directory domain range
+
+  Range name: IDM.LOCAL_id_range
+  First Posix ID of the range: 100000
+  Number of IDs in the range: 200000
+  First RID of the corresponding RID range: 1000
+  First RID of the secondary RID range: 100000000
+  Range type: local domain range
+
+  Range name: IDM.LOCAL_subid_range
+  First Posix ID of the range: 2147483648
+  Number of IDs in the range: 2147352576
+  First RID of the corresponding RID range: 2147393647
+  Domain SID of the trusted domain: S-1-5-21-111111-222222-33333333
+  Range type: Active Directory domain range
+
+  Range name: TRUSTED.AD2_id_range
+  First Posix ID of the range: 900000000
+  Number of IDs in the range: 200000
+  First RID of the corresponding RID range: 0
+  Domain SID of the trusted domain: S-1-5-21-987654321-987654321-987654321
+  Range type: Active Directory domain range
+----------------------------
+Number of entries returned 4
+----------------------------
